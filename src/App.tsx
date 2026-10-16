@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bot, Calendar, Settings, Code2, LayoutDashboard, Key, Download } from 'lucide-react';
+import { Bot, Calendar, Settings, Code2, LayoutDashboard, Key, Download, Globe } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import ContentPlan from './components/ContentPlan';
 import Architecture from './components/Architecture';
@@ -8,8 +8,9 @@ import SetupGuide from './components/SetupGuide';
 import TelegramBot from './components/TelegramBot';
 import ApiSettings from './components/ApiSettings';
 import DownloadProject from './components/DownloadProject';
+import ProxyGuide from './components/ProxyGuide';
 
-type Tab = 'dashboard' | 'download' | 'api' | 'content-plan' | 'architecture' | 'code' | 'setup' | 'telegram';
+type Tab = 'dashboard' | 'download' | 'api' | 'content-plan' | 'architecture' | 'code' | 'setup' | 'telegram' | 'proxy';
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
@@ -18,6 +19,7 @@ function App() {
     { id: 'dashboard' as Tab, label: 'Дашборд', icon: LayoutDashboard },
     { id: 'download' as Tab, label: 'Скачать', icon: Download },
     { id: 'api' as Tab, label: 'API Ключи', icon: Key },
+    { id: 'proxy' as Tab, label: 'Прокси', icon: Globe },
     { id: 'content-plan' as Tab, label: 'Контент-план', icon: Calendar },
     { id: 'architecture' as Tab, label: 'Архитектура', icon: Settings },
     { id: 'code' as Tab, label: 'Go Код', icon: Code2 },
@@ -30,6 +32,7 @@ function App() {
       case 'dashboard': return <Dashboard />;
       case 'download': return <DownloadProject />;
       case 'api': return <ApiSettings />;
+      case 'proxy': return <ProxyGuide />;
       case 'content-plan': return <ContentPlan />;
       case 'architecture': return <Architecture />;
       case 'code': return <GoCode />;

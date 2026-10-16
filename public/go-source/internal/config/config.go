@@ -14,6 +14,12 @@ type Config struct {
 	Schedule ScheduleConfig `yaml:"schedule"`
 	Database DatabaseConfig `yaml:"database"`
 	Content  ContentConfig  `yaml:"content"`
+	Proxy    ProxyConfig    `yaml:"proxy"`
+}
+
+type ProxyConfig struct {
+	Enabled bool   `yaml:"enabled"`
+	URL     string `yaml:"url"`
 }
 
 type TelegramConfig struct {

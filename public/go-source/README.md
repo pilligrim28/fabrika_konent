@@ -188,6 +188,32 @@ image:
 | Gemini + Kandinsky | $0.00/мес |
 | **Любая комбинация** | **$0.00/мес** |
 
+## 🌐 Прокси для Telegram
+
+Если Telegram заблокирован в вашем регионе, настройте прокси:
+
+### Вариант 1: В конфиге
+```yaml
+# configs/config.yaml
+proxy:
+  enabled: true
+  url: "http://proxy.example.com:8080"
+```
+
+### Вариант 2: Переменная окружения
+```bash
+export HTTP_PROXY=http://proxy.example.com:8080
+export HTTPS_PROXY=http://proxy.example.com:8080
+```
+
+### Бесплатные прокси (нестабильные):
+- [Free Proxy List](https://free-proxy-list.net)
+- [ProxyScrape](https://proxyscrape.com/free-proxy-list)
+- [GeoNode](https://geonode.com/free-proxy-list)
+
+### Рекомендуемый вариант: Свой VPS (~$2/мес)
+Арендуйте VPS и настройте Squid прокси — самый надёжный способ.
+
 ## 🛠 Технологии
 
 - **Go 1.21+** — основной язык

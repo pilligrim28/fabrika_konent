@@ -331,15 +331,39 @@ export default function ApiSettings() {
           </div>
         </div>
 
-        {/* Telegram & Dzen */}
-        <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-          <div className="p-4 border-b border-gray-700 flex items-center gap-2">
-            <Bot size={18} className="text-cyan-400" />
-            <h2 className="font-bold">Сервисы (Telegram + Дзен)</h2>
+      {/* Telegram & Dzen */}
+      <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+        <div className="p-4 border-b border-gray-700 flex items-center gap-2">
+          <Bot size={18} className="text-cyan-400" />
+          <h2 className="font-bold">Сервисы (Telegram + Дзен)</h2>
+        </div>
+        <div className="divide-y divide-gray-700">
+          {/* Proxy */}
+          <div className="p-4 hover:bg-gray-700/30 transition-all">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <Globe size={16} className="text-yellow-400" />
+                  <h3 className="font-bold text-sm">Прокси для Telegram</h3>
+                  <span className="px-2 py-0.5 bg-gray-500/20 text-gray-400 text-xs rounded-full">Опционально</span>
+                </div>
+                <p className="text-xs text-gray-500 mb-2">Если Telegram заблокирован. Бесплатные прокси нестабильны, рекомендуется свой VPS.</p>
+                <div className="flex items-center gap-2">
+                  <code className="text-sm text-gray-400 bg-gray-900 px-2 py-1 rounded font-mono">
+                    http://proxy:8080
+                  </code>
+                  <button className="text-xs text-blue-400 hover:text-blue-300">
+                    Настроить
+                  </button>
+                </div>
+              </div>
+              <a href="#" target="_blank" rel="noopener" className="flex items-center gap-1 px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-xs transition-all whitespace-nowrap">
+                <Key size={12} /> Список прокси
+                <ExternalLink size={12} />
+              </a>
+            </div>
           </div>
-          <div className="divide-y divide-gray-700">
-            {keys.filter(k => k.type === 'telegram' || k.type === 'dzen').map((apiKey) => (
-              <div key={apiKey.id} className="p-4 hover:bg-gray-700/30 transition-all">
+          {keys.filter(k => k.type === 'telegram' || k.type === 'dzen').map((apiKey) => (              <div key={apiKey.id} className="p-4 hover:bg-gray-700/30 transition-all">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">

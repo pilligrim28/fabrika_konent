@@ -68,6 +68,29 @@ dzen:
   oauth_token: "YOUR_YANDEX_OAUTH_TOKEN"
   channel_id: "YOUR_CHANNEL_ID"
 
+# === Прокси для Telegram (если заблокирован) ===
+# Бесплатные прокси для Telegram Bot API:
+proxy:
+  enabled: false
+  # Выберите один из вариантов:
+  
+  # Вариант 1: HTTP прокси (самый простой)
+  # url: "http://proxy.example.com:8080"
+  
+  # Вариант 2: SOCKS5 прокси
+  # url: "socks5://proxy.example.com:1080"
+  
+  # Вариант 3: Бесплатные прокси (могут быть нестабильны):
+  # url: "http://free-proxy.cz:80"
+  # url: "http://proxylist.geonode.com:8080"
+  
+  # Вариант 4: Свой VPS с прокси (рекомендуется)
+  # url: "http://your-vps-ip:3128"
+  
+  # Вариант 5: Через переменную окружения HTTP_PROXY
+  # Установите: export HTTP_PROXY=http://proxy:8080
+  # Тогда оставьте enabled: false
+
 # === Расписание публикаций ===
 schedule:
   timezone: "Europe/Moscow"

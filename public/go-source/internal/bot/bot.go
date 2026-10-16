@@ -3,6 +3,8 @@ package bot
 import (
 	"fmt"
 	"log"
+	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -19,12 +21,42 @@ type Bot struct {
 }
 
 func New(cfg *config.Config, db *storage.Storage) *Bot {
-	api, err := tgbotapi.NewBotAPI(cfg.Telegram.BotToken)
-	if err != nil {
-		log.Fatalf("Ошибка инициализации бота: %v", err)
-	}
-	api.Debug = false
+	var api *tgbotapi.BotAPI
+	var err error
 
+	// Проверяем нужен ли прокси
+	if cfg.Proxy.Enabled && cfg.Proxy.URL != "" {
+		log.Printf("🌐 Используем прокси для Telegram: %s", cfg.Proxy.URL)
+		
+		// Создаём HTTP клиент с прокси
+		proxyURL, parseErr := url.Parse(cfg.Proxy.URL)
+		if parseErr != nil {
+			log.Fatalf("Ошибка парсинга прокси URL: %v", parseErr)
+		}
+
+		httpClient := &http.Client{
+			Transport: &http.Transport{
+				Proxy: http.ProxyURL(proxyURL),
+			},
+			Timeout: 60 * time.Second,
+		}
+
+		// Создаём бота с кастомным HTTP клиентом
+		api, err = tgbotapi.NewBotAPIWithClient(
+			cfg.Telegram.BotToken,
+			tgbotapi.APIEndpoint,
+			httpClient,
+		)
+	} else {
+		// Стандартное подключение без прокси
+		api, err = tgbotapi.NewBotAPI(cfg.Telegram.BotToken)
+	}
+
+	if err != nil {
+		log.Fatalf("❌ Ошибка инициализации бота: %v", err)
+	}
+
+	api.Debug = false
 	log.Printf("✅ Telegram бот авторизован: @%s", api.Self.UserName)
 
 	return &Bot{
@@ -155,14 +187,20 @@ func (b *Bot) handlePlan(args string) string {
 }
 
 func (b *Bot) handleStatus() string {
-	return `📊 <b>Статус системы:</b>
+	proxyStatus := "❌ не используется"
+	if b.cfg.Proxy.Enabled {
+		proxyStatus = "✅ " + b.cfg.Proxy.URL
+	}
+
+	return fmt.Sprintf(`📊 <b>Статус системы:</b>
 
 ✅ Планировщик: активен
 ✅ AI генератор: готов (бесплатные модели)
 ✅ Telegram: подключен
+🌐 Прокси: %s
 ⏳ Следующая публикация: по расписанию
 
-💰 Стоимость: $0.00/мес`
+💰 Стоимость: $0.00/мес`, proxyStatus)
 }
 
 func (b *Bot) handleGenerate(args string) string {
