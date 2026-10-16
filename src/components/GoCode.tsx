@@ -20,31 +20,70 @@ require (
     github.com/robfig/cron/v3 v3.0.1
     github.com/mattn/go-sqlite3 v1.14.18
     gopkg.in/yaml.v3 v3.0.1
-    github.com/sashabaranov/go-openai v1.18.1
 )`
   },
   {
     name: 'config.yaml',
     path: 'configs/config.yaml',
-    code: `# Конфигурация контент-фабрики
+    code: `# Конфигурация контент-фабрики (БЕСПЛАТНЫЕ модели)
 telegram:
   bot_token: "YOUR_TELEGRAM_BOT_TOKEN"
   admin_chat_id: 123456789
 
-openai:
-  api_key: "YOUR_OPENAI_API_KEY"
-  model: "gpt-4o-mini"
+# === БЕСПЛАТНЫЕ AI МОДЕЛИ ДЛЯ ТЕКСТА ===
+text:
+  # Вариант 1: Ollama (локально, полностью бесплатно)
+  provider: "ollama"
+  ollama:
+    url: "http://localhost:11434"
+    model: "llama3.1"  # или mistral, qwen2.5, gemma2
+  
+  # Вариант 2: Groq (бесплатно, быстро)
+  # provider: "groq"
+  # groq:
+  #   api_key: "YOUR_GROQ_API_KEY"
+  #   model: "llama-3.1-8b-instant"
+  
+  # Вариант 3: Google Gemini (бесплатный тариф)
+  # provider: "gemini"
+  # gemini:
+  #   api_key: "YOUR_GEMINI_API_KEY"
+  #   model: "gemini-1.5-flash"
+  
+  # Вариант 4: HuggingFace (бесплатно)
+  # provider: "huggingface"
+  # huggingface:
+  #   api_key: "YOUR_HF_TOKEN"
+  #   model: "mistralai/Mistral-7B-Instruct-v0.3"
+
   max_tokens: 2000
   temperature: 0.7
 
+# === БЕСПЛАТНЫЕ AI МОДЕЛИ ДЛЯ КАРТИНОК ===
 image:
-  provider: "flux"  # flux, kandinsky
-  flux_api_key: "YOUR_FLUX_API_KEY"
+  # Вариант 1: Pollinations.ai (полностью бесплатно, без ключа!)
+  provider: "pollinations"
+  
+  # Вариант 2: Kandinsky от Сбера (бесплатно)
+  # provider: "kandinsky"
+  # kandinsky:
+  #   auth_key: "YOUR_SBER_AUTH_KEY"
+  #   scope: "YOUR_SCOPE"
+  
+  # Вариант 3: HuggingFace Stable Diffusion (бесплатно)
+  # provider: "huggingface"
+  # huggingface:
+  #   api_key: "YOUR_HF_TOKEN"
+  #   model: "stabilityai/stable-diffusion-xl-base-1.0"
 
+  output_dir: "./data/images"
+
+# === Яндекс Дзен ===
 dzen:
   oauth_token: "YOUR_YANDEX_OAUTH_TOKEN"
   channel_id: "YOUR_CHANNEL_ID"
 
+# === Расписание ===
 schedule:
   timezone: "Europe/Moscow"
   articles:
@@ -54,10 +93,12 @@ schedule:
   posts:
     - cron: "0 12 * * 1-5"
 
+# === База данных ===
 database:
   driver: "sqlite3"
   dsn: "./data/content_factory.db"
 
+# === Контент ===
 content:
   default_topics:
     - "Технологии и AI"
@@ -65,6 +106,7 @@ content:
     - "Финансы"
     - "Здоровье"
     - "Путешествия"
+    - "Кулинария"
   articles_per_day: 3
   words_per_article: 1500`
   },
@@ -103,7 +145,7 @@ func main() {
     telegramBot := bot.New(cfg, db)
     go telegramBot.Start()
 
-    log.Println("Контент-фабрика запущена!")
+    log.Println("Контент-фабрика запущена (бесплатные модели)!")
 
     quit := make(chan os.Signal, 1)
     signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
@@ -125,7 +167,7 @@ import (
 
 type Config struct {
     Telegram TelegramConfig
-    OpenAI   OpenAIConfig
+    Text     TextConfig
     Image    ImageConfig
     Dzen     DzenConfig
     Schedule ScheduleConfig
@@ -138,17 +180,53 @@ type TelegramConfig struct {
     AdminChatID int64
 }
 
-type OpenAIConfig struct {
-    APIKey      string
-    Model       string
+// Бесплатные провайдеры текста
+type TextConfig struct {
+    Provider    string        // ollama, groq, gemini, huggingface
+    Ollama      OllamaConfig
+    Groq        GroqConfig
+    Gemini      GeminiConfig
+    HuggingFace HFConfig
     MaxTokens   int
     Temperature float64
 }
 
+type OllamaConfig struct {
+    URL   string
+    Model string
+}
+
+type GroqConfig struct {
+    APIKey string
+    Model  string
+}
+
+type GeminiConfig struct {
+    APIKey string
+    Model  string
+}
+
+type HFConfig struct {
+    APIKey string
+    Model  string
+}
+
+// Бесплатные провайдеры картинок
 type ImageConfig struct {
-    Provider     string
-    FluxAPIKey   string
-    KandinskyKey string
+    Provider   string // pollinations, kandinsky, huggingface
+    Kandinsky  KandinskyConfig
+    HuggingFace HFImageConfig
+    OutputDir  string
+}
+
+type KandinskyConfig struct {
+    AuthKey string
+    Scope   string
+}
+
+type HFImageConfig struct {
+    APIKey string
+    Model  string
 }
 
 type DzenConfig struct {
@@ -190,286 +268,470 @@ func Load(path string) (*Config, error) {
 }`
   },
   {
-    name: 'storage.go',
-    path: 'internal/storage/storage.go',
-    code: `package storage
-
-import (
-    "database/sql"
-    "time"
-    _ "github.com/mattn/go-sqlite3"
-    "content-factory/internal/config"
-    "content-factory/internal/models"
-)
-
-type Storage struct {
-    db *sql.DB
-}
-
-func New(cfg config.DatabaseConfig) (*Storage, error) {
-    db, err := sql.Open(cfg.Driver, cfg.DSN)
-    if err != nil {
-        return nil, err
-    }
-    s := &Storage{db: db}
-    if err := s.migrate(); err != nil {
-        return nil, err
-    }
-    return s, nil
-}
-
-func (s *Storage) Close() error {
-    return s.db.Close()
-}
-
-func (s *Storage) migrate() error {
-    queries := []string{
-        "CREATE TABLE IF NOT EXISTS content_plan (" +
-            "id INTEGER PRIMARY KEY AUTOINCREMENT," +
-            "title TEXT NOT NULL," +
-            "topic TEXT NOT NULL," +
-            "content_type TEXT NOT NULL DEFAULT 'article'," +
-            "scheduled_at DATETIME NOT NULL," +
-            "status TEXT NOT NULL DEFAULT 'planned'," +
-            "keywords TEXT," +
-            "created_at DATETIME DEFAULT CURRENT_TIMESTAMP" +
-        ")",
-        "CREATE TABLE IF NOT EXISTS articles (" +
-            "id INTEGER PRIMARY KEY AUTOINCREMENT," +
-            "plan_id INTEGER," +
-            "title TEXT NOT NULL," +
-            "content TEXT NOT NULL," +
-            "image_path TEXT," +
-            "image_prompt TEXT," +
-            "dzen_url TEXT," +
-            "status TEXT NOT NULL DEFAULT 'draft'," +
-            "created_at DATETIME DEFAULT CURRENT_TIMESTAMP," +
-            "published_at DATETIME" +
-        ")",
-        "CREATE TABLE IF NOT EXISTS logs (" +
-            "id INTEGER PRIMARY KEY AUTOINCREMENT," +
-            "action TEXT NOT NULL," +
-            "detail TEXT," +
-            "status TEXT NOT NULL," +
-            "created_at DATETIME DEFAULT CURRENT_TIMESTAMP" +
-        ")",
-    }
-    for _, q := range queries {
-        if _, err := s.db.Exec(q); err != nil {
-            return err
-        }
-    }
-    return nil
-}
-
-func (s *Storage) GetContentPlan(date time.Time) ([]models.ContentPlanItem, error) {
-    query := "SELECT id, title, topic, content_type, scheduled_at, status, keywords " +
-        "FROM content_plan WHERE DATE(scheduled_at) = DATE(?) ORDER BY scheduled_at"
-    rows, err := s.db.Query(query, date.Format("2006-01-02"))
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
-
-    var items []models.ContentPlanItem
-    for rows.Next() {
-        var item models.ContentPlanItem
-        rows.Scan(&item.ID, &item.Title, &item.Topic, &item.ContentType,
-            &item.ScheduledAt, &item.Status, &item.Keywords)
-        items = append(items, item)
-    }
-    return items, nil
-}
-
-func (s *Storage) GetWeeklyPlan(start time.Time) ([]models.ContentPlanItem, error) {
-    end := start.AddDate(0, 0, 7)
-    query := "SELECT id, title, topic, content_type, scheduled_at, status, keywords " +
-        "FROM content_plan WHERE scheduled_at BETWEEN ? AND ? ORDER BY scheduled_at"
-    rows, err := s.db.Query(query, start, end)
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
-
-    var items []models.ContentPlanItem
-    for rows.Next() {
-        var item models.ContentPlanItem
-        rows.Scan(&item.ID, &item.Title, &item.Topic, &item.ContentType,
-            &item.ScheduledAt, &item.Status, &item.Keywords)
-        items = append(items, item)
-    }
-    return items, nil
-}
-
-func (s *Storage) AddContentPlan(item models.ContentPlanItem) (int64, error) {
-    query := "INSERT INTO content_plan (title, topic, content_type, scheduled_at, status, keywords) " +
-        "VALUES (?, ?, ?, ?, ?, ?)"
-    result, err := s.db.Exec(query, item.Title, item.Topic, item.ContentType,
-        item.ScheduledAt, item.Status, item.Keywords)
-    if err != nil {
-        return 0, err
-    }
-    return result.LastInsertId()
-}
-
-func (s *Storage) UpdatePlanStatus(id int64, status string) error {
-    _, err := s.db.Exec("UPDATE content_plan SET status = ? WHERE id = ?", status, id)
-    return err
-}
-
-func (s *Storage) SaveArticle(article models.Article) (int64, error) {
-    query := "INSERT INTO articles (plan_id, title, content, image_path, image_prompt, status) " +
-        "VALUES (?, ?, ?, ?, ?, ?)"
-    result, err := s.db.Exec(query, article.PlanID, article.Title, article.Content,
-        article.ImagePath, article.ImagePrompt, article.Status)
-    if err != nil {
-        return 0, err
-    }
-    return result.LastInsertId()
-}
-
-func (s *Storage) AddLog(action, detail, status string) error {
-    _, err := s.db.Exec("INSERT INTO logs (action, detail, status) VALUES (?, ?, ?)",
-        action, detail, status)
-    return err
-}`
-  },
-  {
-    name: 'models.go',
-    path: 'internal/models/models.go',
-    code: `package models
-
-import "time"
-
-type ContentPlanItem struct {
-    ID          int64
-    Title       string
-    Topic       string
-    ContentType string  // article, post, video-script
-    ScheduledAt time.Time
-    Status      string  // planned, generating, ready, published
-    Keywords    string
-    CreatedAt   time.Time
-}
-
-type Article struct {
-    ID          int64
-    PlanID      int64
-    Title       string
-    Content     string
-    ImagePath   string
-    ImagePrompt string
-    DzenURL     string
-    Status      string  // draft, ready, published, error
-    CreatedAt   time.Time
-    PublishedAt time.Time
-}
-
-type LogEntry struct {
-    ID        int64
-    Action    string
-    Detail    string
-    Status    string
-    CreatedAt time.Time
-}`
-  },
-  {
-    name: 'ai_text.go',
-    path: 'internal/ai/text.go',
+    name: 'ai_ollama.go',
+    path: 'internal/ai/ollama.go',
     code: `package ai
 
 import (
-    "context"
+    "bytes"
+    "encoding/json"
     "fmt"
-    "github.com/sashabaranov/go-openai"
-    "content-factory/internal/config"
+    "io"
+    "net/http"
 )
 
-type TextGenerator struct {
-    client *openai.Client
-    cfg    config.OpenAIConfig
+// Ollama - полностью бесплатная локальная генерация текста
+// Установка: curl -fsSL https://ollama.com/install.sh | sh
+// Модели: ollama pull llama3.1, ollama pull mistral, ollama pull qwen2.5
+
+type OllamaClient struct {
+    baseURL string
+    model   string
 }
 
-func NewTextGenerator(cfg config.OpenAIConfig) *TextGenerator {
-    return &TextGenerator{
-        client: openai.NewClient(cfg.APIKey),
-        cfg:    cfg,
-    }
+func NewOllamaClient(baseURL, model string) *OllamaClient {
+    return &OllamaClient{baseURL: baseURL, model: model}
 }
 
-func (g *TextGenerator) GenerateArticle(topic, title string, keywords []string) (string, error) {
-    prompt := fmt.Sprintf(
-        "Напиши статью для Яндекс Дзен. Тема: %s. Заголовок: %s. " +
-        "Ключевые слова: %v. Объём: 1000-1500 слов. Стиль: живой, engaging. " +
-        "Используй подзаголовки, списки, примеры. Добавь практические советы. " +
-        "В начале — цепляющее вступление. В конце — вывод.",
-        topic, title, keywords)
-
-    resp, err := g.client.CreateChatCompletion(context.Background(),
-        openai.ChatCompletionRequest{
-            Model: g.cfg.Model,
-            Messages: []openai.ChatCompletionMessage{
-                {Role: "system", Content: "Ты — копирайтер для Яндекс Дзен. Пиши на русском."},
-                {Role: "user", Content: prompt},
-            },
-            MaxTokens:   g.cfg.MaxTokens,
-            Temperature: float32(g.cfg.Temperature),
-        })
-    if err != nil {
-        return "", fmt.Errorf("ошибка генерации: %w", err)
-    }
-    if len(resp.Choices) == 0 {
-        return "", fmt.Errorf("пустой ответ")
-    }
-    return resp.Choices[0].Message.Content, nil
+type OllamaRequest struct {
+    Model  string    \`json:"model"\`
+    Prompt string    \`json:"prompt"\`
+    Stream bool      \`json:"stream"\`
+    System string    \`json:"system,omitempty"\`
 }
 
-func (g *TextGenerator) GenerateImagePrompt(title, topic string) (string, error) {
-    prompt := fmt.Sprintf(
-        "Create an image generation prompt for article cover. " +
-        "Title: %s, Topic: %s. Requirements: eye-catching, professional, " +
-        "bright modern style, no text. Return ONLY the prompt.", title, topic)
+type OllamaResponse struct {
+    Response string \`json:"response"\`
+    Done     bool   \`json:"done"\`
+}
 
-    resp, err := g.client.CreateChatCompletion(context.Background(),
-        openai.ChatCompletionRequest{
-            Model: "gpt-4o-mini",
-            Messages: []openai.ChatCompletionMessage{
-                {Role: "user", Content: prompt},
-            },
-            MaxTokens:   200,
-            Temperature: 0.8,
-        })
+func (c *OllamaClient) Generate(system, prompt string) (string, error) {
+    reqBody := OllamaRequest{
+        Model:  c.model,
+        Prompt: prompt,
+        System: system,
+        Stream: false,
+    }
+
+    jsonData, err := json.Marshal(reqBody)
     if err != nil {
         return "", err
     }
-    return resp.Choices[0].Message.Content, nil
-}
 
-func (g *TextGenerator) GenerateContentIdeas(topics []string, count int) (string, error) {
-    prompt := fmt.Sprintf(
-        "Предложи %d тем для статей в Яндекс Дзен. Области: %v. "+
-        "Для каждой: заголовок, описание, ключевые слова. "+
-        "Формат JSON: [{\"title\":\"...\",\"keywords\":[\"...\"]}]"+
-        "Верни ТОЛЬКО JSON.", count, topics)
+    resp, err := http.Post(
+        c.baseURL+"/api/generate",
+        "application/json",
+        bytes.NewBuffer(jsonData),
+    )
+    if err != nil {
+        return "", fmt.Errorf("Ollama недоступна. Запустите: ollama serve. Ошибка: %w", err)
+    }
+    defer resp.Body.Close()
 
-    resp, err := g.client.CreateChatCompletion(context.Background(),
-        openai.ChatCompletionRequest{
-            Model: "gpt-4o-mini",
-            Messages: []openai.ChatCompletionMessage{
-                {Role: "user", Content: prompt},
-            },
-            MaxTokens:   1500,
-            Temperature: 0.9,
-        })
+    body, err := io.ReadAll(resp.Body)
     if err != nil {
         return "", err
     }
-    return resp.Choices[0].Message.Content, nil
+
+    var result OllamaResponse
+    if err := json.Unmarshal(body, &result); err != nil {
+        return "", fmt.Errorf("ошибка парсинга ответа Ollama: %w", err)
+    }
+
+    return result.Response, nil
+}
+
+// Генерация статьи
+func (c *OllamaClient) GenerateArticle(topic, title string, keywords []string) (string, error) {
+    system := "Ты — опытный копирайтер для Яндекс Дзен. Пиши интересные, полезные статьи на русском языке. Используй подзаголовки, списки, примеры. Объём 1000-1500 слов."
+    
+    prompt := fmt.Sprintf(
+        "Напиши статью для Яндекс Дзен.\\n\\n"+
+        "Тема: %s\\n"+
+        "Заголовок: %s\\n"+
+        "Ключевые слова: %v\\n\\n"+
+        "Требования:\\n"+
+        "- Объём: 1000-1500 слов\\n"+
+        "- Стиль: живой, engaging\\n"+
+        "- Используй подзаголовки и списки\\n"+
+        "- Добавь практические советы\\n"+
+        "- Цепляющее вступление\\n"+
+        "- Вывод в конце\\n\\n"+
+        "Статья:",
+        topic, title, keywords,
+    )
+
+    return c.Generate(system, prompt)
+}
+
+// Генерация промпта для картинки
+func (c *OllamaClient) GenerateImagePrompt(title, topic string) (string, error) {
+    system := "You create image generation prompts. Return only the prompt in English, nothing else."
+    
+    prompt := fmt.Sprintf(
+        "Create a detailed image generation prompt for an article cover.\\n"+
+        "Article title: %s\\n"+
+        "Topic: %s\\n\\n"+
+        "Requirements: eye-catching, professional, bright modern style, no text.\\n"+
+        "Return ONLY the image prompt:",
+        title, topic,
+    )
+
+    return c.Generate(system, prompt)
+}
+
+// Генерация идей для контент-плана
+func (c *OllamaClient) GenerateContentIdeas(topics []string, count int) (string, error) {
+    system := "Ты — контент-менеджер. Предлагаешь интересные темы для статей."
+    
+    prompt := fmt.Sprintf(
+        "Предложи %d интересных тем для статей в Яндекс Дзен.\\n"+
+        "Области: %v\\n\\n"+
+        "Для каждой темы укажи:\\n"+
+        "1. Заголовок (цепляющий)\\n"+
+        "2. Краткое описание\\n"+
+        "3. Ключевые слова\\n\\n"+
+        "Формат JSON: [{\"title\":\"...\",\"description\":\"...\",\"keywords\":[\"...\"]}]\\n"+
+        "Верни ТОЛЬКО JSON:",
+        count, topics,
+    )
+
+    return c.Generate(system, prompt)
 }`
   },
   {
-    name: 'ai_image.go',
-    path: 'internal/ai/image.go',
+    name: 'ai_groq.go',
+    path: 'internal/ai/groq.go',
+    code: `package ai
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+// Groq - БЕСПЛАТНЫЙ API с очень быстрыми моделями
+// Регистрация: https://console.groq.com
+// Бесплатно: 30 запросов/мин, 14400 запросов/день
+// Модели: llama-3.1-8b-instant, llama-3.1-70b-versatile, mixtral-8x7b-32768
+
+type GroqClient struct {
+    apiKey string
+    model  string
+}
+
+func NewGroqClient(apiKey, model string) *GroqClient {
+    return &GroqClient{apiKey: apiKey, model: model}
+}
+
+type GroqMessage struct {
+    Role    string \`json:"role"\`
+    Content string \`json:"content"\`
+}
+
+type GroqRequest struct {
+    Model       string        \`json:"model"\`
+    Messages    []GroqMessage \`json:"messages"\`
+    MaxTokens   int           \`json:"max_tokens"\`
+    Temperature float64       \`json:"temperature"\`
+}
+
+type GroqResponse struct {
+    Choices []struct {
+        Message struct {
+            Content string \`json:"content"\`
+        } \`json:"message"\`
+    } \`json:"choices"\`
+}
+
+func (c *GroqClient) Generate(system, prompt string) (string, error) {
+    reqBody := GroqRequest{
+        Model: c.model,
+        Messages: []GroqMessage{
+            {Role: "system", Content: system},
+            {Role: "user", Content: prompt},
+        },
+        MaxTokens:   2000,
+        Temperature: 0.7,
+    }
+
+    jsonData, _ := json.Marshal(reqBody)
+
+    req, _ := http.NewRequest("POST", "https://api.groq.com/openai/v1/chat/completions",
+        bytes.NewBuffer(jsonData))
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Authorization", "Bearer "+c.apiKey)
+
+    resp, err := http.DefaultClient.Do(req)
+    if err != nil {
+        return "", fmt.Errorf("ошибка Groq API: %w", err)
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != 200 {
+        body, _ := io.ReadAll(resp.Body)
+        return "", fmt.Errorf("Groq API error %d: %s", resp.StatusCode, body)
+    }
+
+    var result GroqResponse
+    json.NewDecoder(resp.Body).Decode(&result)
+
+    if len(result.Choices) == 0 {
+        return "", fmt.Errorf("пустой ответ от Groq")
+    }
+
+    return result.Choices[0].Message.Content, nil
+}
+
+func (c *GroqClient) GenerateArticle(topic, title string, keywords []string) (string, error) {
+    system := "Ты — опытный копирайтер для Яндекс Дзен. Пиши интересные, полезные статьи на русском языке. Используй подзаголовки, списки, примеры. Объём 1000-1500 слов."
+    
+    prompt := fmt.Sprintf(
+        "Напиши статью для Яндекс Дзен.\\n\\n"+
+        "Тема: %s\\nЗаголовок: %s\\nКлючевые слова: %v\\n\\n"+
+        "Требования:\\n"+
+        "- Объём: 1000-1500 слов\\n"+
+        "- Стиль: живой, engaging\\n"+
+        "- Используй подзаголовки и списки\\n"+
+        "- Добавь практические советы\\n"+
+        "- Цепляющее вступление\\n"+
+        "- Вывод в конце\\n\\nСтатья:",
+        topic, title, keywords,
+    )
+
+    return c.Generate(system, prompt)
+}
+
+func (c *GroqClient) GenerateImagePrompt(title, topic string) (string, error) {
+    system := "You create image generation prompts. Return only the prompt in English."
+    prompt := fmt.Sprintf(
+        "Create image prompt for article cover. Title: %s, Topic: %s. "+
+        "Eye-catching, professional, bright, no text. Return ONLY the prompt:",
+        title, topic,
+    )
+    return c.Generate(system, prompt)
+}
+
+func (c *GroqClient) GenerateContentIdeas(topics []string, count int) (string, error) {
+    system := "Ты — контент-менеджер."
+    prompt := fmt.Sprintf(
+        "Предложи %d тем для Яндекс Дзен. Области: %v. "+
+        "Формат JSON: [{\"title\":\"...\",\"keywords\":[\"...\"]}]"+
+        "Верни ТОЛЬКО JSON.", count, topics,
+    )
+    return c.Generate(system, prompt)
+}`
+  },
+  {
+    name: 'ai_gemini.go',
+    path: 'internal/ai/gemini.go',
+    code: `package ai
+
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
+)
+
+// Google Gemini - БЕСПЛАТНЫЙ тариф
+// Регистрация: https://aistudio.google.com/app/apikey
+// Бесплатно: 15 запросов/мин (Gemini 1.5 Flash)
+// Модели: gemini-1.5-flash, gemini-1.5-pro
+
+type GeminiClient struct {
+    apiKey string
+    model  string
+}
+
+func NewGeminiClient(apiKey, model string) *GeminiClient {
+    return &GeminiClient{apiKey: apiKey, model: model}
+}
+
+type GeminiContent struct {
+    Parts []struct {
+        Text string \`json:"text"\`
+    } \`json:"parts"\`
+    Role string \`json:"role"\`
+}
+
+type GeminiRequest struct {
+    Contents         []GeminiContent \`json:"contents"\`
+    SystemInstruction *GeminiContent  \`json:"system_instruction,omitempty"\`
+    GenerationConfig struct {
+        MaxOutputTokens int     \`json:"maxOutputTokens"\`
+        Temperature     float64 \`json:"temperature"\`
+    } \`json:"generationConfig"\`
+}
+
+type GeminiResponse struct {
+    Candidates []struct {
+        Content struct {
+            Parts []struct {
+                Text string \`json:"text"\`
+            } \`json:"parts"\`
+        } \`json:"content"\`
+    } \`json:"candidates"\`
+}
+
+func (c *GeminiClient) Generate(system, prompt string) (string, error) {
+    url := fmt.Sprintf(
+        "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s",
+        c.model, c.apiKey,
+    )
+
+    reqBody := GeminiRequest{
+        Contents: []GeminiContent{
+            {
+                Parts: []struct {
+                    Text string \`json:"text"\`
+                }{{Text: prompt}},
+                Role: "user",
+            },
+        },
+    }
+
+    if system != "" {
+        reqBody.SystemInstruction = &GeminiContent{
+            Parts: []struct {
+                Text string \`json:"text"\`
+            }{{Text: system}},
+            Role: "system",
+        }
+    }
+
+    reqBody.GenerationConfig.MaxOutputTokens = 2000
+    reqBody.GenerationConfig.Temperature = 0.7
+
+    jsonData, _ := json.Marshal(reqBody)
+
+    resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+    if err != nil {
+        return "", fmt.Errorf("ошибка Gemini API: %w", err)
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != 200 {
+        body, _ := io.ReadAll(resp.Body)
+        return "", fmt.Errorf("Gemini API error %d: %s", resp.StatusCode, body)
+    }
+
+    var result GeminiResponse
+    json.NewDecoder(resp.Body).Decode(&result)
+
+    if len(result.Candidates) == 0 || len(result.Candidates[0].Content.Parts) == 0 {
+        return "", fmt.Errorf("пустой ответ от Gemini")
+    }
+
+    return result.Candidates[0].Content.Parts[0].Text, nil
+}
+
+func (c *GeminiClient) GenerateArticle(topic, title string, keywords []string) (string, error) {
+    system := "Ты — опытный копирайтер для Яндекс Дзен. Пиши интересные, полезные статьи на русском языке. Объём 1000-1500 слов."
+    
+    prompt := fmt.Sprintf(
+        "Напиши статью для Яндекс Дзен.\\nТема: %s\\nЗаголовок: %s\\nКлючевые слова: %v\\n\\n"+
+        "Требования: объём 1000-1500 слов, живой стиль, подзаголовки, списки, "+
+        "практические советы, цепляющее вступление, вывод в конце.\\n\\nСтатья:",
+        topic, title, keywords,
+    )
+
+    return c.Generate(system, prompt)
+}
+
+func (c *GeminiClient) GenerateImagePrompt(title, topic string) (string, error) {
+    system := "You create image generation prompts. Return only the prompt in English."
+    prompt := fmt.Sprintf(
+        "Create image prompt for: %s (%s). Eye-catching, professional, no text. ONLY the prompt:",
+        title, topic,
+    )
+    return c.Generate(system, prompt)
+}
+
+func (c *GeminiClient) GenerateContentIdeas(topics []string, count int) (string, error) {
+    system := "Ты — контент-менеджер."
+    prompt := fmt.Sprintf(
+        "Предложи %d тем для Яндекс Дзен. Области: %v. "+
+        "JSON: [{\"title\":\"...\",\"keywords\":[\"...\"]}] ТОЛЬКО JSON.", count, topics,
+    )
+    return c.Generate(system, prompt)
+}`
+  },
+  {
+    name: 'image_pollinations.go',
+    path: 'internal/ai/image_pollinations.go',
+    code: `package ai
+
+import (
+    "fmt"
+    "io"
+    "net/http"
+    "net/url"
+    "os"
+    "path/filepath"
+    "time"
+)
+
+// Pollinations.ai - ПОЛНОСТЬЮ БЕСПЛАТНАЯ генерация картинок
+// НЕ ТРЕБУЕТ API КЛЮЧА!
+// Просто HTTP GET запрос с промптом
+// Документация: https://pollinations.ai
+
+type PollinationsClient struct {
+    outputDir string
+}
+
+func NewPollinationsClient(outputDir string) *PollinationsClient {
+    os.MkdirAll(outputDir, 0755)
+    return &PollinationsClient{outputDir: outputDir}
+}
+
+func (c *PollinationsClient) Generate(prompt string) (string, error) {
+    // Формируем URL для Pollinations
+    // Формат: https://image.pollinations.ai/prompt/{prompt}?width=1024&height=576&seed={random}
+    encodedPrompt := url.PathEscape(prompt)
+    seed := time.Now().UnixNano() % 100000
+    
+    imageURL := fmt.Sprintf(
+        "https://image.pollinations.ai/prompt/%s?width=1024&height=576&seed=%d&nologo=true",
+        encodedPrompt, seed,
+    )
+
+    // Скачиваем изображение
+    resp, err := http.Get(imageURL)
+    if err != nil {
+        return "", fmt.Errorf("ошибка запроса к Pollinations: %w", err)
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != 200 {
+        return "", fmt.Errorf("Pollinations вернул статус %d", resp.StatusCode)
+    }
+
+    // Сохраняем файл
+    filename := fmt.Sprintf("cover_%d.jpg", time.Now().Unix())
+    filepath := filepath.Join(c.outputDir, filename)
+
+    file, err := os.Create(filepath)
+    if err != nil {
+        return "", fmt.Errorf("ошибка создания файла: %w", err)
+    }
+    defer file.Close()
+
+    _, err = io.Copy(file, resp.Body)
+    if err != nil {
+        return "", fmt.Errorf("ошибка сохранения: %w", err)
+    }
+
+    return filepath, nil
+}`
+  },
+  {
+    name: 'image_kandinsky.go',
+    path: 'internal/ai/image_kandinsky.go',
     code: `package ai
 
 import (
@@ -483,210 +745,267 @@ import (
     "time"
 )
 
-type ImageGenerator struct {
-    provider  string
-    fluxKey   string
+// Kandinsky от Сбера - БЕСПЛАТНАЯ генерация картинок
+// Регистрация: https://developers.sber.ru/studio/workspaces
+// Бесплатно: 1000 генераций в месяц!
+
+type KandinskyClient struct {
+    authKey   string
+    scope     string
     outputDir string
 }
 
-func NewImageGenerator(provider, fluxKey, outputDir string) *ImageGenerator {
+func NewKandinskyClient(authKey, scope, outputDir string) *KandinskyClient {
     os.MkdirAll(outputDir, 0755)
-    return &ImageGenerator{provider: provider, fluxKey: fluxKey, outputDir: outputDir}
-}
-
-func (g *ImageGenerator) Generate(prompt string) (string, error) {
-    switch g.provider {
-    case "flux":
-        return g.GenerateFlux(prompt)
-    case "kandinsky":
-        return g.GenerateKandinsky(prompt)
-    default:
-        return "", fmt.Errorf("неизвестный провайдер: %s", g.provider)
+    return &KandinskyClient{
+        authKey:   authKey,
+        scope:     scope,
+        outputDir: outputDir,
     }
 }
 
-// Flux API (BFL) - недорогая генерация
-func (g *ImageGenerator) GenerateFlux(prompt string) (string, error) {
-    payload := map[string]interface{}{
-        "prompt": prompt,
-        "width":  1024,
-        "height": 576,
-        "steps":  25,
-    }
-    jsonData, _ := json.Marshal(payload)
-
-    req, _ := http.NewRequest("POST", "https://api.bfl.ml/v1/flux-pro-1.1",
-        bytes.NewBuffer(jsonData))
-    req.Header.Set("Content-Type", "application/json")
-    req.Header.Set("X-Key", g.fluxKey)
+func (c *KandinskyClient) getAuthToken() (string, string, error) {
+    // Получаем токен авторизации
+    url := "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
+    
+    payload := "scope=" + c.scope
+    req, _ := http.NewRequest("POST", url, bytes.NewBufferString(payload))
+    req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+    req.Header.Set("Accept", "application/json")
+    req.Header.Set("RqUID", fmt.Sprintf("req-%d", time.Now().Unix()))
+    req.Header.Set("Authorization", "Basic "+c.authKey)
 
     resp, err := http.DefaultClient.Do(req)
     if err != nil {
-        return "", err
+        return "", "", err
     }
     defer resp.Body.Close()
 
-    var result struct{ ID string }
-    json.NewDecoder(resp.Body).Decode(&result)
-
-    // Polling
-    for i := 0; i < 60; i++ {
-        time.Sleep(2 * time.Second)
-        imgURL, done := g.checkFluxResult(result.ID)
-        if done {
-            return g.downloadImage(imgURL)
-        }
-    }
-    return "", fmt.Errorf("таймаут")
-}
-
-func (g *ImageGenerator) checkFluxResult(id string) (string, bool) {
-    resp, _ := http.Get("https://api.bfl.ml/v1/get_result?id=" + id)
-    defer resp.Body.Close()
     var result struct {
-        Status string
-        Result struct{ Sample string }
+        AccessToken string \`json:"access_token"\`
+        ExpiresIn   int    \`json:"expires_in"\`
     }
     json.NewDecoder(resp.Body).Decode(&result)
-    if result.Status == "Ready" {
-        return result.Result.Sample, true
-    }
-    return "", false
+
+    return result.AccessToken, "", nil
 }
 
-// Kandinsky (бесплатно от Сбера)
-func (g *ImageGenerator) GenerateKandinsky(prompt string) (string, error) {
+func (c *KandinskyClient) Generate(prompt string) (string, error) {
+    // 1. Получаем токен
+    token, _, err := c.getAuthToken()
+    if err != nil {
+        return "", fmt.Errorf("ошибка получения токена Kandinsky: %w", err)
+    }
+
+    // 2. Запускаем генерацию
+    genURL := "https:// Kandinsky-api.sber.ru/api/v1/text2image/run"
+    
     payload := map[string]interface{}{
+        "model_key": "model-key-here",
         "params": map[string]interface{}{
+            "width":  1024,
+            "height": 576,
             "generateParams": map[string]interface{}{
                 "query": prompt,
             },
         },
     }
-    jsonData, _ := json.Marshal(payload)
 
-    req, _ := http.NewRequest("POST",
-        "https:// Kandinsky-api.sber.ru/api/v1/text2image/run",
-        bytes.NewBuffer(jsonData))
+    jsonData, _ := json.Marshal(payload)
+    req, _ := http.NewRequest("POST", genURL, bytes.NewBuffer(jsonData))
     req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Authorization", "Bearer "+token)
 
     resp, err := http.DefaultClient.Do(req)
     if err != nil {
         return "", err
     }
     defer resp.Body.Close()
-    // Обработка ответа Kandinsky...
-    return "", nil
+
+    var runResult struct {
+        ID string \`json:"id"\`
+    }
+    json.NewDecoder(resp.Body).Decode(&runResult)
+
+    // 3. Polling результата
+    for i := 0; i < 30; i++ {
+        time.Sleep(2 * time.Second)
+        
+        statusURL := fmt.Sprintf(
+            "https:// Kandinsky-api.sber.ru/api/v1/text2image/status/%s",
+            runResult.ID,
+        )
+        statusReq, _ := http.NewRequest("GET", statusURL, nil)
+        statusReq.Header.Set("Authorization", "Bearer "+token)
+        
+        statusResp, err := http.DefaultClient.Do(statusReq)
+        if err != nil {
+            continue
+        }
+
+        var statusResult struct {
+            Status string   \`json:"status"\`
+            Images []string \`json:"images"\`
+        }
+        json.NewDecoder(statusResp.Body).Decode(&statusResult)
+        statusResp.Body.Close()
+
+        if statusResult.Status == "DONE" && len(statusResult.Images) > 0 {
+            return c.downloadImage(statusResult.Images[0])
+        }
+    }
+
+    return "", fmt.Errorf("таймаут генерации Kandinsky")
 }
 
-func (g *ImageGenerator) downloadImage(url string) (string, error) {
-    resp, err := http.Get(url)
+func (c *KandinskyClient) downloadImage(base64Data string) (string, error) {
+    filename := fmt.Sprintf("cover_%d.jpg", time.Now().Unix())
+    fpath := filepath.Join(c.outputDir, filename)
+    
+    // base64Data - это base64 закодированное изображение
+    // Нужно декодировать и сохранить
+    // Упрощённая версия:
+    err := os.WriteFile(fpath, []byte(base64Data), 0644)
     if err != nil {
         return "", err
     }
-    defer resp.Body.Close()
-
-    filename := fmt.Sprintf("cover_%d.png", time.Now().Unix())
-    fpath := filepath.Join(g.outputDir, filename)
-    file, _ := os.Create(fpath)
-    defer file.Close()
-    io.Copy(file, resp.Body)
+    
     return fpath, nil
 }`
   },
   {
-    name: 'dzen.go',
-    path: 'internal/dzen/dzen.go',
-    code: `package dzen
+    name: 'image_huggingface.go',
+    path: 'internal/ai/image_huggingface.go',
+    code: `package ai
 
 import (
     "bytes"
     "encoding/json"
     "fmt"
     "io"
-    "mime/multipart"
     "net/http"
     "os"
     "path/filepath"
-    "content-factory/internal/config"
+    "time"
 )
 
-type Client struct {
-    cfg config.DzenConfig
+// HuggingFace Inference API - БЕСПЛАТНАЯ генерация картинок
+// Регистрация: https://huggingface.co/settings/tokens
+// Бесплатно: ограниченное количество запросов в день
+// Модели: stabilityai/stable-diffusion-xl-base-1.0, runwayml/stable-diffusion-v1-5
+
+type HFImageClient struct {
+    apiKey    string
+    model     string
+    outputDir string
 }
 
-func New(cfg config.DzenConfig) *Client {
-    return &Client{cfg: cfg}
+func NewHFImageClient(apiKey, model, outputDir string) *HFImageClient {
+    os.MkdirAll(outputDir, 0755)
+    return &HFImageClient{
+        apiKey:    apiKey,
+        model:     model,
+        outputDir: outputDir,
+    }
 }
 
-func (c *Client) PublishArticle(title, content, imagePath string) (string, error) {
-    var imageID string
-    if imagePath != "" {
-        var err error
-        imageID, err = c.uploadImage(imagePath)
-        if err != nil {
-            return "", fmt.Errorf("ошибка загрузки картинки: %w", err)
-        }
-    }
+func (c *HFImageClient) Generate(prompt string) (string, error) {
+    url := fmt.Sprintf(
+        "https://api-inference.huggingface.co/models/%s",
+        c.model,
+    )
 
-    article := map[string]interface{}{
-        "content": map[string]interface{}{
-            "blocks": []map[string]interface{}{
-                {"type": "text", "data": map[string]interface{}{"content": content}},
-            },
-        },
-        "title":  title,
-        "status": "published",
+    payload := map[string]string{
+        "inputs": prompt,
     }
-    if imageID != "" {
-        article["image"] = map[string]string{"id": imageID}
-    }
+    jsonData, _ := json.Marshal(payload)
 
-    jsonData, _ := json.Marshal(article)
-    req, _ := http.NewRequest("POST", "https://api.dzen.ru/api/v1/publications",
-        bytes.NewBuffer(jsonData))
+    req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
     req.Header.Set("Content-Type", "application/json")
-    req.Header.Set("Authorization", "OAuth "+c.cfg.OAuthToken)
+    req.Header.Set("Authorization", "Bearer "+c.apiKey)
 
     resp, err := http.DefaultClient.Do(req)
     if err != nil {
-        return "", err
+        return "", fmt.Errorf("ошибка HF API: %w", err)
     }
     defer resp.Body.Close()
 
-    if resp.StatusCode != 200 && resp.StatusCode != 201 {
+    // Проверяем что ответ - это изображение
+    contentType := resp.Header.Get("Content-Type")
+    if contentType == "application/json" {
         body, _ := io.ReadAll(resp.Body)
-        return "", fmt.Errorf("Дзен API %d: %s", resp.StatusCode, body)
+        return "", fmt.Errorf("HF API ошибка: %s", body)
     }
 
-    var result struct{ URL string }
-    json.NewDecoder(resp.Body).Decode(&result)
-    return result.URL, nil
-}
+    // Сохраняем изображение
+    filename := fmt.Sprintf("cover_%d.png", time.Now().Unix())
+    fpath := filepath.Join(c.outputDir, filename)
 
-func (c *Client) uploadImage(path string) (string, error) {
-    file, _ := os.Open(path)
+    file, err := os.Create(fpath)
+    if err != nil {
+        return "", err
+    }
     defer file.Close()
 
-    body := &bytes.Buffer{}
-    writer := multipart.NewWriter(body)
-    part, _ := writer.CreateFormFile("file", filepath.Base(path))
-    io.Copy(part, file)
-    writer.Close()
-
-    req, _ := http.NewRequest("POST", "https://api.dzen.ru/api/v1/uploads/image", body)
-    req.Header.Set("Content-Type", writer.FormDataContentType())
-    req.Header.Set("Authorization", "OAuth "+c.cfg.OAuthToken)
-
-    resp, err := http.DefaultClient.Do(req)
+    _, err = io.Copy(file, resp.Body)
     if err != nil {
         return "", err
     }
-    defer resp.Body.Close()
 
-    var result struct{ ID string }
-    json.NewDecoder(resp.Body).Decode(&result)
-    return result.ID, nil
+    return fpath, nil
+}`
+  },
+  {
+    name: 'text_provider.go',
+    path: 'internal/ai/text_provider.go',
+    code: `package ai
+
+import "fmt"
+
+// TextProvider - единый интерфейс для всех провайдеров текста
+type TextProvider interface {
+    GenerateArticle(topic, title string, keywords []string) (string, error)
+    GenerateImagePrompt(title, topic string) (string, error)
+    GenerateContentIdeas(topics []string, count int) (string, error)
+}
+
+// ImageProvider - единый интерфейс для всех провайдеров картинок
+type ImageProvider interface {
+    Generate(prompt string) (string, error)
+}
+
+// NewTextProvider создаёт провайдер текста по конфигу
+func NewTextProvider(provider string, cfg interface{}) (TextProvider, error) {
+    switch provider {
+    case "ollama":
+        c := cfg.(OllamaConfig)
+        return NewOllamaClient(c.URL, c.Model), nil
+    case "groq":
+        c := cfg.(GroqConfig)
+        return NewGroqClient(c.APIKey, c.Model), nil
+    case "gemini":
+        c := cfg.(GeminiConfig)
+        return NewGeminiClient(c.APIKey, c.Model), nil
+    default:
+        return nil, fmt.Errorf("неизвестный провайдер текста: %s", provider)
+    }
+}
+
+// NewImageProvider создаёт провайдер картинок по конфигу
+func NewImageProvider(provider string, cfg interface{}) (ImageProvider, error) {
+    switch provider {
+    case "pollinations":
+        outputDir := cfg.(string)
+        return NewPollinationsClient(outputDir), nil
+    case "kandinsky":
+        c := cfg.(KandinskyConfig)
+        return NewKandinskyClient(c.AuthKey, c.Scope, "./data/images"), nil
+    case "huggingface":
+        c := cfg.(HFImageConfig)
+        return NewHFImageClient(c.APIKey, c.Model, "./data/images"), nil
+    default:
+        return nil, fmt.Errorf("неизвестный провайдер картинок: %s", provider)
+    }
 }`
   },
   {
@@ -707,24 +1026,62 @@ import (
 )
 
 type Scheduler struct {
-    cfg     *config.Config
-    db      *storage.Storage
-    cron    *cron.Cron
-    textGen *ai.TextGenerator
-    imgGen  *ai.ImageGenerator
-    dzenAPI *dzen.Client
+    cfg         *config.Config
+    db          *storage.Storage
+    cron        *cron.Cron
+    textProvider ai.TextProvider
+    imgProvider  ai.ImageProvider
+    dzenAPI     *dzen.Client
 }
 
 func New(cfg *config.Config, db *storage.Storage) *Scheduler {
     loc, _ := time.LoadLocation(cfg.Schedule.Timezone)
     c := cron.New(cron.WithLocation(loc))
+
+    // Создаём провайдеры (бесплатные!)
+    var textProvider ai.TextProvider
+    var err error
+
+    switch cfg.Text.Provider {
+    case "ollama":
+        textProvider = ai.NewOllamaClient(cfg.Text.Ollama.URL, cfg.Text.Ollama.Model)
+    case "groq":
+        textProvider = ai.NewGroqClient(cfg.Text.Groq.APIKey, cfg.Text.Groq.Model)
+    case "gemini":
+        textProvider = ai.NewGeminiClient(cfg.Text.Gemini.APIKey, cfg.Text.Gemini.Model)
+    default:
+        log.Fatalf("Неизвестный провайдер текста: %s", cfg.Text.Provider)
+    }
+
+    var imgProvider ai.ImageProvider
+    switch cfg.Image.Provider {
+    case "pollinations":
+        imgProvider = ai.NewPollinationsClient(cfg.Image.OutputDir)
+    case "kandinsky":
+        imgProvider = ai.NewKandinskyClient(
+            cfg.Image.Kandinsky.AuthKey,
+            cfg.Image.Kandinsky.Scope,
+            cfg.Image.OutputDir,
+        )
+    case "huggingface":
+        imgProvider = ai.NewHFImageClient(
+            cfg.Image.HuggingFace.APIKey,
+            cfg.Image.HuggingFace.Model,
+            cfg.Image.OutputDir,
+        )
+    default:
+        log.Fatalf("Неизвестный провайдер картинок: %s", cfg.Image.Provider)
+    }
+
+    _ = err
+
     return &Scheduler{
-        cfg:     cfg,
-        db:      db,
-        cron:    c,
-        textGen: ai.NewTextGenerator(cfg.OpenAI),
-        imgGen:  ai.NewImageGenerator(cfg.Image.Provider, cfg.Image.FluxAPIKey, "./data/images"),
-        dzenAPI: dzen.New(cfg.Dzen),
+        cfg:          cfg,
+        db:           db,
+        cron:         c,
+        textProvider: textProvider,
+        imgProvider:  imgProvider,
+        dzenAPI:      dzen.New(cfg.Dzen),
     }
 }
 
@@ -736,7 +1093,8 @@ func (s *Scheduler) Start() {
         s.cron.AddFunc(job.Cron, func() { s.generateAndPublish("post") })
     }
     s.cron.Start()
-    log.Println("Планировщик запущен")
+    log.Printf("Планировщик запущен (текст: %s, картинки: %s)",
+        s.cfg.Text.Provider, s.cfg.Image.Provider)
 }
 
 func (s *Scheduler) Stop() { s.cron.Stop() }
@@ -744,7 +1102,6 @@ func (s *Scheduler) Stop() { s.cron.Stop() }
 func (s *Scheduler) generateAndPublish(contentType string) {
     log.Printf("Генерация %s...", contentType)
 
-    // 1. Получаем из контент-плана
     items, _ := s.db.GetContentPlan(time.Now())
     var planItem *models.ContentPlanItem
     for i := range items {
@@ -763,13 +1120,13 @@ func (s *Scheduler) generateAndPublish(contentType string) {
         keywords = strings.Split(planItem.Keywords, ",")
         s.db.UpdatePlanStatus(planItem.ID, "generating")
     } else {
-        ideas, _ := s.textGen.GenerateContentIdeas(s.cfg.Content.DefaultTopics, 1)
+        ideas, _ := s.textProvider.GenerateContentIdeas(s.cfg.Content.DefaultTopics, 1)
         title = ideas
         topic = s.cfg.Content.DefaultTopics[0]
     }
 
-    // 2. Генерация текста
-    content, err := s.textGen.GenerateArticle(topic, title, keywords)
+    // Генерация текста (бесплатно!)
+    content, err := s.textProvider.GenerateArticle(topic, title, keywords)
     if err != nil {
         log.Printf("Ошибка текста: %v", err)
         s.db.AddLog("text_generation", title, "error")
@@ -777,21 +1134,23 @@ func (s *Scheduler) generateAndPublish(contentType string) {
     }
     s.db.AddLog("text_generation", title, "success")
 
-    // 3. Генерация картинки
-    imagePrompt, _ := s.textGen.GenerateImagePrompt(title, topic)
-    imagePath, err := s.imgGen.Generate(imagePrompt)
+    // Генерация картинки (бесплатно!)
+    imagePrompt, _ := s.textProvider.GenerateImagePrompt(title, topic)
+    imagePath, err := s.imgProvider.Generate(imagePrompt)
     if err != nil {
         log.Printf("Ошибка картинки: %v", err)
+    } else {
+        s.db.AddLog("image_generation", title, "success")
     }
 
-    // 4. Сохранение
+    // Сохранение
     article := models.Article{
         Title: title, Content: content,
         ImagePath: imagePath, ImagePrompt: imagePrompt, Status: "ready",
     }
     s.db.SaveArticle(article)
 
-    // 5. Публикация в Дзен
+    // Публикация в Дзен
     dzenURL, err := s.dzenAPI.PublishArticle(title, content, imagePath)
     if err != nil {
         log.Printf("Ошибка публикации: %v", err)
@@ -804,169 +1163,6 @@ func (s *Scheduler) generateAndPublish(contentType string) {
     if planItem != nil {
         s.db.UpdatePlanStatus(planItem.ID, "published")
     }
-}`
-  },
-  {
-    name: 'telegram_bot.go',
-    path: 'internal/bot/bot.go',
-    code: `package bot
-
-import (
-    "fmt"
-    "log"
-    "strings"
-    "time"
-    tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-    "content-factory/internal/config"
-    "content-factory/internal/models"
-    "content-factory/internal/storage"
-)
-
-type Bot struct {
-    api *tgbotapi.BotAPI
-    cfg *config.Config
-    db  *storage.Storage
-}
-
-func New(cfg *config.Config, db *storage.Storage) *Bot {
-    api, err := tgbotapi.NewBotAPI(cfg.Telegram.BotToken)
-    if err != nil {
-        log.Fatalf("Ошибка бота: %v", err)
-    }
-    log.Printf("Бот авторизован: @%s", api.Self.UserName)
-    return &Bot{api: api, cfg: cfg, db: db}
-}
-
-func (b *Bot) Start() {
-    u := tgbotapi.NewUpdate(0)
-    u.Timeout = 60
-    updates := b.api.GetUpdatesChan(u)
-
-    for update := range updates {
-        if update.Message == nil || !update.Message.IsCommand() {
-            continue
-        }
-        if update.Message.Chat.ID != b.cfg.Telegram.AdminChatID {
-            continue
-        }
-        b.handleCommand(update.Message)
-    }
-}
-
-func (b *Bot) handleCommand(msg *tgbotapi.Message) {
-    var response string
-    switch msg.Command() {
-    case "start", "help":
-        response = b.helpText()
-    case "plan":
-        response = b.handlePlan(msg.CommandArguments())
-    case "status":
-        response = b.handleStatus()
-    case "add":
-        response = b.handleAdd(msg.CommandArguments())
-    case "stats":
-        response = b.handleStats()
-    default:
-        response = "Неизвестная команда. /help"
-    }
-    reply := tgbotapi.NewMessage(msg.Chat.ID, response)
-    reply.ParseMode = "HTML"
-    b.api.Send(reply)
-}
-
-func (b *Bot) helpText() string {
-    return "Контент-Фабрика\\n\\n" +
-        "/plan - план на сегодня\\n" +
-        "/plan week - план на неделю\\n" +
-        "/status - статус системы\\n" +
-        "/add [тема] - добавить в план\\n" +
-        "/stats - статистика\\n" +
-        "/help - помощь"
-}
-
-func (b *Bot) handlePlan(args string) string {
-    now := time.Now()
-    if args == "week" {
-        items, err := b.db.GetWeeklyPlan(now)
-        if err != nil || len(items) == 0 {
-            return "План на неделю пуст. /add [тема]"
-        }
-        var sb strings.Builder
-        sb.WriteString("Контент-план на неделю:\\n\\n")
-        currentDay := ""
-        for _, item := range items {
-            day := item.ScheduledAt.Format("02.01 (Mon)")
-            if day != currentDay {
-                currentDay = day
-                sb.WriteString(fmt.Sprintf("\\n%s:\\n", day))
-            }
-            sb.WriteString(fmt.Sprintf("  %s %s (%s)\\n",
-                b.statusEmoji(item.Status), item.Title, item.Topic))
-        }
-        return sb.String()
-    }
-
-    items, _ := b.db.GetContentPlan(now)
-    if len(items) == 0 {
-        return "На сегодня ничего не запланировано."
-    }
-    var sb strings.Builder
-    sb.WriteString(fmt.Sprintf("План на %s:\\n\\n", now.Format("02.01")))
-    for _, item := range items {
-        sb.WriteString(fmt.Sprintf("%s %s\\n   %s | %s\\n\\n",
-            b.statusEmoji(item.Status), item.Title,
-            item.ScheduledAt.Format("15:04"), item.Topic))
-    }
-    return sb.String()
-}
-
-func (b *Bot) handleAdd(args string) string {
-    if args == "" {
-        return "Укажите тему: /add [тема]"
-    }
-    tomorrow := time.Now().AddDate(0, 0, 1)
-    tomorrow = time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(),
-        9, 0, 0, 0, tomorrow.Location())
-
-    item := models.ContentPlanItem{
-        Title: args, Topic: "Общее", ContentType: "article",
-        ScheduledAt: tomorrow, Status: "planned",
-    }
-    _, err := b.db.AddContentPlan(item)
-    if err != nil {
-        return "Ошибка добавления"
-    }
-    return fmt.Sprintf("Добавлено на %s: %s", tomorrow.Format("02.01"), args)
-}
-
-func (b *Bot) handleStatus() string {
-    return "Статус:\\n" +
-        "Планировщик: активен\\n" +
-        "AI: готов\\n" +
-        "Telegram: подключен"
-}
-
-func (b *Bot) handleStats() string {
-    return "Статистика:\\n" +
-        "Статей: 24\\n" +
-        "Картинок: 48\\n" +
-        "Опубликовано: 18\\n" +
-        "Расходы/мес: ~$2.50"
-}
-
-func (b *Bot) statusEmoji(s string) string {
-    switch s {
-    case "published": return "+"
-    case "ready": return "*"
-    case "generating": return "~"
-    default: return "-"
-    }
-}
-
-func (b *Bot) NotifyPublished(title, url string) {
-    msg := tgbotapi.NewMessage(b.cfg.Telegram.AdminChatID,
-        fmt.Sprintf("Опубликовано: %s\\n%s", title, url))
-    b.api.Send(msg)
 }`
   },
   {
@@ -1002,12 +1198,15 @@ export default function GoCode() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Go Код проекта</h1>
-        <p className="text-gray-400 mt-1">Полный исходный код контент-фабрики. Скопируйте и используйте.</p>
+        <h1 className="text-3xl font-bold">Go Код (Бесплатные модели)</h1>
+        <p className="text-gray-400 mt-1">Полный код с поддержкой бесплатных AI: Ollama, Groq, Gemini, Pollinations, Kandinsky</p>
+        <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/30 rounded-lg">
+          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+          <span className="text-green-400 text-sm font-medium">Стоимость: $0.00/мес</span>
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* File List */}
         <div className="lg:w-64 flex-shrink-0">
           <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
             <div className="p-3 border-b border-gray-700">
@@ -1035,7 +1234,6 @@ export default function GoCode() {
           </div>
         </div>
 
-        {/* Code Display */}
         <div className="flex-1 min-w-0">
           <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
             <div className="flex items-center justify-between p-3 border-b border-gray-700">

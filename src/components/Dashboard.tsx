@@ -1,4 +1,4 @@
-import { FileText, Image, Send, Clock, TrendingUp, CheckCircle, AlertCircle, Zap } from 'lucide-react';
+import { FileText, Image, Send, Clock, TrendingUp, CheckCircle, AlertCircle, Zap, Shield } from 'lucide-react';
 
 export default function Dashboard() {
   const stats = [
@@ -10,26 +10,35 @@ export default function Dashboard() {
 
   const recentActivity = [
     { time: '10:30', action: 'Статья опубликована', detail: '"10 способов улучшить продуктивность"', status: 'success' },
-    { time: '10:25', action: 'Картинка сгенерирована', detail: 'Обложка для статьи о продуктивности', status: 'success' },
-    { time: '10:20', action: 'Текст создан', detail: 'AI сгенерировал статью (1200 слов)', status: 'success' },
+    { time: '10:25', action: 'Картинка сгенерирована', detail: 'Pollinations.ai — обложка создана', status: 'success' },
+    { time: '10:20', action: 'Текст создан', detail: 'Ollama (llama3.1) — 1200 слов', status: 'success' },
     { time: '09:00', action: 'Контент-план обновлён', detail: 'Добавлено 7 новых тем на неделю', status: 'info' },
     { time: '08:00', action: 'Telegram уведомление', detail: 'Утренний отчёт отправлен', status: 'success' },
-    { time: '07:30', action: 'Ошибка API', detail: 'Таймаут при генерации картинки', status: 'error' },
+    { time: '07:30', action: 'Таймаут Ollama', detail: 'Модель перезагружена автоматически', status: 'error' },
   ];
 
   const pipeline = [
-    { step: 'Генерация темы', status: 'done', desc: 'AI выбирает тему из контент-плана' },
-    { step: 'Создание текста', status: 'done', desc: 'GPT-4o-mini генерирует статью' },
-    { step: 'Генерация картинок', status: 'active', desc: 'Flux/Kandinsky создаёт обложку' },
-    { step: 'Публикация', status: 'pending', desc: 'Отправка в Яндекс Дзен' },
+    { step: 'Генерация темы', status: 'done', desc: 'Ollama выбирает тему из контент-плана' },
+    { step: 'Создание текста', status: 'done', desc: 'Llama 3.1 / Groq / Gemini пишет статью' },
+    { step: 'Генерация картинок', status: 'active', desc: 'Pollinations.ai создаёт обложку' },
+    { step: 'Публикация', status: 'pending', desc: 'Отправка в Яндекс Дзен API' },
     { step: 'Уведомление', status: 'pending', desc: 'Telegram бот сообщает результат' },
   ];
 
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Дашборд</h1>
-        <p className="text-gray-400 mt-1">Обзор работы контент-фабрики</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Дашборд</h1>
+            <p className="text-gray-400 mt-1">Обзор работы контент-фабрики</p>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded-lg">
+            <Shield size={18} className="text-green-400" />
+            <span className="text-green-400 font-bold">БЕСПЛАТНО</span>
+            <span className="text-gray-500 text-sm">$0.00/мес</span>
+          </div>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -110,30 +119,100 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* AI Models Used */}
+      {/* AI Models Used - FREE */}
       <div className="mt-6 bg-gray-800 rounded-xl p-6 border border-gray-700">
-        <h2 className="text-xl font-bold mb-4">Используемые AI модели</h2>
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Shield size={20} className="text-green-400" />
+          Используемые бесплатные AI модели
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gray-700/50 rounded-lg p-4">
-            <h3 className="font-bold text-blue-400">Текст</h3>
-            <p className="text-sm text-gray-300 mt-1">GPT-4o-mini (OpenAI)</p>
-            <p className="text-xs text-gray-500 mt-2">~$0.15 / 1M токенов (ввод)</p>
-            <p className="text-xs text-gray-500">~$0.60 / 1M токенов (вывод)</p>
-            <span className="inline-block mt-2 px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded">Дёшево</span>
+          <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600/50">
+            <h3 className="font-bold text-blue-400">Текст (выберите один)</h3>
+            <div className="mt-2 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-300">Ollama (локально)</span>
+                <span className="text-xs text-green-400">∞ безлимит</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-300">Groq (Llama 3.1)</span>
+                <span className="text-xs text-green-400">14400/день</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-300">Gemini Flash</span>
+                <span className="text-xs text-green-400">1500/день</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-300">HuggingFace</span>
+                <span className="text-xs text-green-400">лимит</span>
+              </div>
+            </div>
+            <span className="inline-block mt-3 px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded">$0.00</span>
           </div>
-          <div className="bg-gray-700/50 rounded-lg p-4">
-            <h3 className="font-bold text-purple-400">Картинки</h3>
-            <p className="text-sm text-gray-300 mt-1">Flux (BFL) / Kandinsky</p>
-            <p className="text-xs text-gray-500 mt-2">Flux: ~$0.03/картинка</p>
-            <p className="text-xs text-gray-500">Kandinsky: Бесплатно (Сбер)</p>
-            <span className="inline-block mt-2 px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded">Бесплатно/Дёшево</span>
+          <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600/50">
+            <h3 className="font-bold text-purple-400">Картинки (выберите один)</h3>
+            <div className="mt-2 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-300">Pollinations.ai</span>
+                <span className="text-xs text-green-400">∞ без ключа</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-300">Kandinsky (Сбер)</span>
+                <span className="text-xs text-green-400">1000/мес</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-300">HF Stable Diffusion</span>
+                <span className="text-xs text-green-400">лимит</span>
+              </div>
+            </div>
+            <span className="inline-block mt-3 px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded">$0.00</span>
           </div>
-          <div className="bg-gray-700/50 rounded-lg p-4">
-            <h3 className="font-bold text-orange-400">Альтернативы</h3>
-            <p className="text-sm text-gray-300 mt-1">Ollama (локально)</p>
-            <p className="text-xs text-gray-500 mt-2">Llama 3.1, Mistral, Qwen</p>
-            <p className="text-xs text-gray-500">Полностью бесплатно</p>
-            <span className="inline-block mt-2 px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded">Локально</span>
+          <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600/50">
+            <h3 className="font-bold text-orange-400">Ссылки для регистрации</h3>
+            <div className="mt-2 space-y-2">
+              <a href="https://ollama.com" target="_blank" rel="noopener" className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300">
+                → ollama.com (скачать)
+              </a>
+              <a href="https://console.groq.com/keys" target="_blank" rel="noopener" className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300">
+                → console.groq.com/keys
+              </a>
+              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300">
+                → aistudio.google.com
+              </a>
+              <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener" className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300">
+                → huggingface.co/tokens
+              </a>
+              <a href="https://pollinations.ai" target="_blank" rel="noopener" className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300">
+                → pollinations.ai
+              </a>
+              <a href="https://developers.sber.ru/studio/workspaces" target="_blank" rel="noopener" className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300">
+                → developers.sber.ru
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Cost Comparison */}
+      <div className="mt-6 bg-gradient-to-r from-green-600/10 to-emerald-600/10 rounded-xl p-6 border border-green-500/30">
+        <h2 className="text-xl font-bold mb-4">💰 Экономия: бесплатные vs платные</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-gray-900/50 rounded-lg p-4">
+            <h3 className="text-red-400 font-bold mb-2">❌ Платные сервисы</h3>
+            <div className="space-y-1 text-sm text-gray-400">
+              <p>OpenAI GPT-4o-mini: ~$5-15/мес</p>
+              <p>Flux Pro: ~$3-10/мес</p>
+              <p>DALL-E 3: ~$5-15/мес</p>
+              <p className="font-bold text-red-400 mt-2">Итого: $15-40/мес</p>
+            </div>
+          </div>
+          <div className="bg-gray-900/50 rounded-lg p-4 border border-green-500/30">
+            <h3 className="text-green-400 font-bold mb-2">✅ Наши бесплатные</h3>
+            <div className="space-y-1 text-sm text-gray-400">
+              <p>Ollama / Groq / Gemini: $0</p>
+              <p>Pollinations.ai: $0</p>
+              <p>Kandinsky: $0</p>
+              <p className="font-bold text-green-400 mt-2">Итого: $0.00/мес 🎉</p>
+            </div>
           </div>
         </div>
       </div>

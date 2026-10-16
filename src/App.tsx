@@ -1,21 +1,23 @@
 import { useState } from 'react';
-import { Bot, FileText, Calendar, Settings, Code2, LayoutDashboard, BookOpen, Zap } from 'lucide-react';
+import { Bot, Calendar, Settings, Code2, LayoutDashboard, Key } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import ContentPlan from './components/ContentPlan';
 import Architecture from './components/Architecture';
 import GoCode from './components/GoCode';
 import SetupGuide from './components/SetupGuide';
 import TelegramBot from './components/TelegramBot';
+import ApiSettings from './components/ApiSettings';
 
-type Tab = 'dashboard' | 'content-plan' | 'architecture' | 'code' | 'setup' | 'telegram';
+type Tab = 'dashboard' | 'api' | 'content-plan' | 'architecture' | 'code' | 'setup' | 'telegram';
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
 
   const tabs = [
     { id: 'dashboard' as Tab, label: 'Дашборд', icon: LayoutDashboard },
+    { id: 'api' as Tab, label: 'API Ключи', icon: Key },
     { id: 'content-plan' as Tab, label: 'Контент-план', icon: Calendar },
-    { id: 'architecture' as Tab, label: 'Архитектура', icon: Zap },
+    { id: 'architecture' as Tab, label: 'Архитектура', icon: Settings },
     { id: 'code' as Tab, label: 'Go Код', icon: Code2 },
     { id: 'setup' as Tab, label: 'Настройка', icon: Settings },
     { id: 'telegram' as Tab, label: 'Telegram Бот', icon: Bot },
@@ -24,6 +26,7 @@ function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard />;
+      case 'api': return <ApiSettings />;
       case 'content-plan': return <ContentPlan />;
       case 'architecture': return <Architecture />;
       case 'code': return <GoCode />;
@@ -39,12 +42,12 @@ function App() {
       <aside className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
         <div className="p-6 border-b border-gray-700">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
               <Bot size={24} />
             </div>
             <div>
               <h1 className="font-bold text-lg">Контент Фабрика</h1>
-              <p className="text-xs text-gray-400">Go + AI + Дзен</p>
+              <p className="text-xs text-green-400">100% Бесплатно • Go + AI</p>
             </div>
           </div>
         </div>
@@ -70,12 +73,13 @@ function App() {
         </nav>
 
         <div className="p-4 border-t border-gray-700">
-          <div className="bg-gray-700/50 rounded-lg p-3">
-            <div className="flex items-center gap-2 text-xs text-gray-400">
+          <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-xs text-green-400">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              Система активна
+              Бесплатные модели
             </div>
-            <p className="text-xs text-gray-500 mt-1">v1.0.0 • Go 1.21+</p>
+            <p className="text-xs text-gray-500 mt-1">Ollama • Groq • Gemini</p>
+            <p className="text-xs text-gray-500">Pollinations • Kandinsky</p>
           </div>
         </div>
       </aside>
