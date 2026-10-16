@@ -1,0 +1,12 @@
+github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1 h1:UOcOCfQForC+U0E3M4bfVfEjEYFDFaRMVYk+JsXjkY=
+github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1/go.mod h1:h+BAj/5iFTsWYIeM6N7F1hq2bPQkbZ/aHqGxJr8Fj2w=
+github.com/mattn/go-sqlite3 v1.14.18 h1:ie6C5+P+4WQ+K7RsUFrMCae+JdSAHdJGcK7a9bOslU=
+github.com/mattn/go-sqlite3 v1.14.18/go.mod h1:2eHXhiwb8IkHr+BVWZyogBVh8H7iSSrwZi5A6p/2sCM=
+github.com/robfig/cron/v3 v3.0.1 h1:WdRxkvbJztn8LMz/QEvLN5sBU+xKpSqwwUO1Pjr4qDs=
+github.com/robfig/cron/v3 v3.0.1/go.mod h1:eQICP3HwyTcUoo0HrJSKdA0pLHFlszYKZwI6U93lROE=
+github.com/technoweenie/multipartstreamer v1.0.1 h1:BG4REbgrJcQ7iyXJf8sKfJ9bQjg9ystRcDU/EljCwmY=
+github.com/technoweenie/multipartstreamer v1.0.1/go.mod h1:jNV5dtLY0Z4gT6a0L/q5jyQeQ3M8KKJj/+CWXUCmiQg=
+gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1EVCAEJBkOfkSuQQ1skiXFQoGk/Y2O6UJo=
+gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Gy0=
+gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJE68CQ=
+gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=

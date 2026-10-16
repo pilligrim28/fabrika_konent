@@ -1,0 +1,90 @@
+# Конфигурация контент-фабрики (БЕСПЛАТНЫЕ модели)
+# Стоимость: $0.00/мес
+
+telegram:
+  bot_token: "YOUR_TELEGRAM_BOT_TOKEN"
+  admin_chat_id: 123456789  # Узнайте через @userinfobot
+  
+  # === ПРОКСИ ДЛЯ TELEGRAM ===
+  # Если Telegram API заблокирован, используйте прокси
+  proxy:
+    enabled: false
+    
+    # ВАРИАНТ 1: MTProto прокси (рекомендуется)
+    # Получить: @MTProxybot в Telegram или создать свой
+    type: "mtproto"
+    mtproto:
+      server: "proxy.example.com"
+      port: 443
+      secret: "ee00000000000000000000000000000000"
+    
+    # ВАРИАНТ 2: SOCKS5 прокси
+    # Бесплатные: https://www.sslproxies.org/ или https://free-proxy-list.net/
+    # type: "socks5"
+    # socks5:
+    #   host: "proxy.example.com"
+    #   port: 1080
+    #   username: ""  # опционально
+    #   password: ""  # опционально
+    
+    # ВАРИАНТ 3: HTTP прокси
+    # type: "http"
+    # http:
+    #   url: "http://proxy.example.com:8080"
+    #   username: ""
+    #   password: ""
+
+# === БЕСПЛАТНЫЕ AI МОДЕЛИ ДЛЯ ТЕКСТА ===
+text:
+  provider: "ollama"
+  ollama:
+    url: "http://localhost:11434"
+    model: "llama3.1"
+  
+  # provider: "groq"
+  # groq:
+  #   api_key: "gsk_YOUR_GROQ_KEY"
+  #   model: "llama-3.1-8b-instant"
+  
+  # provider: "gemini"
+  # gemini:
+  #   api_key: "AIza_YOUR_GEMINI_KEY"
+  #   model: "gemini-1.5-flash"
+
+  max_tokens: 2000
+  temperature: 0.7
+
+# === БЕСПЛАТНЫЕ AI ДЛЯ КАРТИНОК ===
+image:
+  provider: "pollinations"
+  output_dir: "./data/images"
+
+# === Яндекс Дзен ===
+dzen:
+  oauth_token: "YOUR_YANDEX_OAUTH_TOKEN"
+  channel_id: "YOUR_CHANNEL_ID"
+
+# === Расписание ===
+schedule:
+  timezone: "Europe/Moscow"
+  articles:
+    - cron: "0 9 * * *"
+    - cron: "0 14 * * *"
+    - cron: "0 18 * * *"
+  posts:
+    - cron: "0 12 * * 1-5"
+
+database:
+  driver: "sqlite3"
+  dsn: "./data/content_factory.db"
+
+content:
+  default_topics:
+    - "Технологии и AI"
+    - "Саморазвитие"
+    - "Финансы"
+    - "Здоровье"
+    - "Путешествия"
+    - "Кулинария"
+  articles_per_day: 3
+  words_per_article: 1500
