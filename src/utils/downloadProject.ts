@@ -10,6 +10,10 @@ export const PROJECT_FILES = [
   { path: 'Dockerfile', url: '/go-source/Dockerfile' },
   { path: 'docker-compose.yml', url: '/go-source/docker-compose.yml' },
   { path: '.gitignore', url: '/go-source/.gitignore' },
+  { path: 'LICENSE', url: '/go-source/LICENSE' },
+  { path: 'publish.sh', url: '/go-source/publish.sh' },
+  { path: 'PUBLISH_GUIDE.md', url: '/go-source/PUBLISH_GUIDE.md' },
+  { path: '.github/workflows/ci.yml', url: '/go-source/.github/workflows/ci.yml' },
   
   // Конфигурация
   { path: 'configs/config.yaml', url: '/go-source/configs/config.yaml' },

@@ -1,5 +1,5 @@
-import { Download, FileCode, FolderOpen, Copy, Check, Terminal, ExternalLink, Package } from 'lucide-react';
 import { useState } from 'react';
+import { Download, FileCode, FolderOpen, Copy, Check, Terminal, ExternalLink, Package, Github, BookOpen } from 'lucide-react';
 import { downloadProject, downloadFile, PROJECT_FILES, DownloadProgress } from '../utils/downloadProject';
 
 export default function DownloadProject() {
@@ -77,6 +77,26 @@ docker run -d --name content-factory \\
 
 # Или через docker-compose
 docker-compose up -d`;
+
+  const publishCommands = `# Способ 1: С помощью GitHub CLI (рекомендуется)
+# Установите GitHub CLI: https://cli.github.com/
+
+# Авторизуйтесь
+gh auth login
+
+# Опубликуйте проект
+./publish.sh
+
+# Способ 2: Вручную
+# 1. Создайте репозиторий на https://github.com/new
+# 2. Выполните команды:
+
+git init
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/content-factory.git
+git push -u origin main`;
 
   return (
     <div className="p-8">
@@ -165,6 +185,46 @@ docker-compose up -d`;
         </div>
       </div>
 
+      {/* Publish to GitHub */}
+      <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-xl p-6 border border-purple-500/30 mb-8">
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Github size={20} className="text-purple-400" />
+          Опубликовать на GitHub
+        </h2>
+        <div className="relative">
+          <pre className="bg-gray-900 rounded-lg p-4 font-mono text-sm overflow-x-auto">
+            <code className="text-purple-400 whitespace-pre">{publishCommands}</code>
+          </pre>
+          <button
+            onClick={() => handleCopy(publishCommands, 'publish')}
+            className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs transition-all"
+          >
+            {copied === 'publish' ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
+            {copied === 'publish' ? '✓' : 'Copy'}
+          </button>
+        </div>
+        <div className="mt-4 flex gap-3">
+          <a
+            href="https://github.com/new"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium transition-all"
+          >
+            <Github size={16} />
+            Создать репозиторий
+          </a>
+          <a
+            href="https://cli.github.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium transition-all"
+          >
+            <BookOpen size={16} />
+            GitHub CLI
+          </a>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* File List */}
         <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
@@ -235,7 +295,7 @@ docker-compose up -d`;
                   key={i}
                   href={link.url}
                   target="_blank"
-                  rel="noopener"
+                  rel="noopener noreferrer"
                   className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-700/50 transition-all group"
                 >
                   <ExternalLink size={14} className="text-blue-400 flex-shrink-0" />

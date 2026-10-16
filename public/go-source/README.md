@@ -31,6 +31,50 @@
 | **Kandinsky** (Сбер) | 1000 генераций/мес | [developers.sber.ru](https://developers.sber.ru/studio/workspaces) |
 | **HuggingFace SD** | бесплатный лимит | [huggingface.co](https://huggingface.co/settings/tokens) |
 
+## 📤 Публикация на GitHub
+
+### Способ 1: Автоматическая публикация (рекомендуется)
+
+```bash
+# Установите GitHub CLI
+# macOS: brew install gh
+# Linux: https://cli.github.com/manual/installation
+
+# Авторизуйтесь
+gh auth login
+
+# Запустите скрипт публикации
+chmod +x publish.sh
+./publish.sh
+```
+
+### Способ 2: Ручная публикация
+
+```bash
+# Создайте репозиторий на https://github.com/new
+
+# Инициализируйте git
+git init
+git add .
+git commit -m "Initial commit: контент-фабрика на Go"
+
+# Добавьте remote
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/content-factory.git
+git push -u origin main
+```
+
+### CI/CD
+
+Проект включает GitHub Actions workflow (`.github/workflows/ci.yml`):
+- Автоматическая сборка при push
+- Тестирование кода
+- Опциональная публикация Docker образа
+
+Для Docker публикации добавьте secrets в GitHub:
+- `DOCKER_USERNAME`
+- `DOCKER_PASSWORD`
+
 ## 🚀 Быстрый старт
 
 ### 1. Скачайте проект
