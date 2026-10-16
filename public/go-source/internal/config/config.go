@@ -23,8 +23,36 @@ type ProxyConfig struct {
 }
 
 type TelegramConfig struct {
-	BotToken    string `yaml:"bot_token"`
-	AdminChatID int64  `yaml:"admin_chat_id"`
+	BotToken    string       `yaml:"bot_token"`
+	AdminChatID int64        `yaml:"admin_chat_id"`
+	Proxy       ProxyConfig  `yaml:"proxy"`
+}
+
+type ProxyConfig struct {
+	Enabled  bool           `yaml:"enabled"`
+	Type     string         `yaml:"type"` // mtproto, socks5, http
+	MTProto  MTProtoConfig  `yaml:"mtproto"`
+	SOCKS5   SOCKS5Config   `yaml:"socks5"`
+	HTTP     HTTPProxyConfig `yaml:"http"`
+}
+
+type MTProtoConfig struct {
+	Server string `yaml:"server"`
+	Port   int    `yaml:"port"`
+	Secret string `yaml:"secret"`
+}
+
+type SOCKS5Config struct {
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+}
+
+type HTTPProxyConfig struct {
+	URL      string `yaml:"url"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
 }
 
 type TextConfig struct {

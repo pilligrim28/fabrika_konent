@@ -4,127 +4,87 @@
 telegram:
   bot_token: "YOUR_TELEGRAM_BOT_TOKEN"
   admin_chat_id: 123456789  # Узнайте через @userinfobot
+  
+  # === ПРОКСИ ДЛЯ TELEGRAM ===
+  # Если Telegram API заблокирован, используйте прокси
+  proxy:
+    enabled: false
+    
+    # ВАРИАНТ 1: MTProto прокси (рекомендуется)
+    # Получить: @MTProxybot в Telegram или создать свой
+    type: "mtproto"
+    mtproto:
+      server: "proxy.example.com"
+      port: 443
+      secret: "ee00000000000000000000000000000000"
+    
+    # ВАРИАНТ 2: SOCKS5 прокси
+    # Бесплатные: https://www.sslproxies.org/ или https://free-proxy-list.net/
+    # type: "socks5"
+    # socks5:
+    #   host: "proxy.example.com"
+    #   port: 1080
+    #   username: ""  # опционально
+    #   password: ""  # опционально
+    
+    # ВАРИАНТ 3: HTTP прокси
+    # type: "http"
+    # http:
+    #   url: "http://proxy.example.com:8080"
+    #   username: ""
+    #   password: ""
 
 # === БЕСПЛАТНЫЕ AI МОДЕЛИ ДЛЯ ТЕКСТА ===
-# Выберите ОДИН провайдер:
 text:
-  # ВАРИАНТ 1: Ollama (локально, безлимитно, без ключа)
-  # Установка: curl -fsSL https://ollama.com/install.sh | sh
-  # Модели: ollama pull llama3.1 / mistral / qwen2.5
   provider: "ollama"
   ollama:
     url: "http://localhost:11434"
     model: "llama3.1"
   
-  # ВАРИАНТ 2: Groq (облако, очень быстро, 14400 запросов/день)
-  # Получить ключ: https://console.groq.com/keys
   # provider: "groq"
   # groq:
   #   api_key: "gsk_YOUR_GROQ_KEY"
   #   model: "llama-3.1-8b-instant"
   
-  # ВАРИАНТ 3: Google Gemini (1500 запросов/день)
-  # Получить ключ: https://aistudio.google.com/app/apikey
   # provider: "gemini"
   # gemini:
   #   api_key: "AIza_YOUR_GEMINI_KEY"
   #   model: "gemini-1.5-flash"
-  
-  # ВАРИАНТ 4: HuggingFace (бесплатный лимит)
-  # Получить токен: https://huggingface.co/settings/tokens
-  # provider: "huggingface"
-  # huggingface:
-  #   api_key: "hf_YOUR_HF_TOKEN"
-  #   model: "mistralai/Mistral-7B-Instruct-v0.3"
 
   max_tokens: 2000
   temperature: 0.7
 
 # === БЕСПЛАТНЫЕ AI ДЛЯ КАРТИНОК ===
-# Выберите ОДИН провайдер:
 image:
-  # ВАРИАНТ 1: Pollinations.ai (без ключа, безлимитно!)
-  # Просто HTTP GET запрос
   provider: "pollinations"
-  
-  # ВАРИАНТ 2: Kandinsky от Сбера (1000 генераций/мес)
-  # Регистрация: https://developers.sber.ru/studio/workspaces
-  # provider: "kandinsky"
-  # kandinsky:
-  #   auth_key: "YOUR_SBER_BASIC_AUTH"
-  #   scope: "YOUR_SCOPE"
-  
-  # ВАРИАНТ 3: HuggingFace Stable Diffusion
-  # provider: "huggingface"
-  # huggingface:
-  #   api_key: "hf_YOUR_HF_TOKEN"
-  #   model: "stabilityai/stable-diffusion-xl-base-1.0"
-
   output_dir: "./data/images"
 
 # === Яндекс Дзен ===
-# Получить OAuth: https://dzen.ru → настройки канала → API
 dzen:
   oauth_token: "YOUR_YANDEX_OAUTH_TOKEN"
   channel_id: "YOUR_CHANNEL_ID"
 
-# === Прокси для Telegram (если заблокирован) ===
-# Бесплатные прокси для Telegram Bot API:
-proxy:
-  enabled: false
-  # Выберите один из вариантов:
-  
-  # Вариант 1: HTTP прокси (самый простой)
-  # url: "http://proxy.example.com:8080"
-  
-  # Вариант 2: SOCKS5 прокси
-  # url: "socks5://proxy.example.com:1080"
-  
-  # Вариант 3: Бесплатные прокси (могут быть нестабильны):
-  # url: "http://free-proxy.cz:80"
-  # url: "http://proxylist.geonode.com:8080"
-  
-  # Вариант 4: Свой VPS с прокси (рекомендуется)
-  # url: "http://your-vps-ip:3128"
-  
-  # Вариант 5: Через переменную окружения HTTP_PROXY
-  # Установите: export HTTP_PROXY=http://proxy:8080
-  # Тогда оставьте enabled: false
-
-# === Расписание публикаций ===
+# === Расписание ===
 schedule:
   timezone: "Europe/Moscow"
   articles:
-    - cron: "0 9 * * *"    # Каждый день в 9:00
-    - cron: "0 14 * * *"   # Каждый день в 14:00
-    - cron: "0 18 * * *"   # Каждый день в 18:00
+    - cron: "0 9 * * *"
+    - cron: "0 14 * * *"
+    - cron: "0 18 * * *"
   posts:
-    - cron: "0 12 * * 1-5" # Пн-Пт в 12:00
+    - cron: "0 12 * * 1-5"
 
-# === База данных ===
 database:
   driver: "sqlite3"
   dsn: "./data/content_factory.db"
 
-# === Настройки контента ===
 content:
   default_topics:
     - "Технологии и AI"
     - "Саморазвитие"
-    - "Финансы и инвестиции"
-    - "Здоровье и спорт"
+    - "Финансы"
+    - "Здоровье"
     - "Путешествия"
     - "Кулинария"
-    - "Психология"
-    - "Бизнес"
   articles_per_day: 3
   words_per_article: 1500
-
-# === Прокси для Telegram (если заблокирован) ===
-# Бесплатные варианты:
-# - Cloudflare Workers: https://workers.cloudflare.com (100k запросов/день)
-# - Ceckin.ru: https://proxy.ceckin.ru/telegram
-# - Свой Nginx прокси на VPS
-proxy:
-  enabled: false
-  url: "https://your-proxy.workers.dev"  # URL вашего прокси

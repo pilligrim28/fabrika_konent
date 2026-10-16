@@ -21,27 +21,30 @@ type Bot struct {
 }
 
 func New(cfg *config.Config, db *storage.Storage) *Bot {
+	// Настройка HTTP клиента с прокси (если нужно)
+	var httpClient *http.Client
+	
+	if cfg.Telegram.Proxy.Enabled {
+		proxyURL, err := getProxyURL(cfg.Telegram.Proxy)
+		if err != nil {
+			log.Printf("⚠️ Ошибка настройки прокси: %v", err)
+			log.Printf("⚠️ Продолжаю без прокси")
+		} else {
+			httpClient = &http.Client{
+				Transport: &http.Transport{
+					Proxy: http.ProxyURL(proxyURL),
+				},
+				Timeout: 60 * time.Second,
+			}
+			log.Printf("✅ Прокси настроен: %s", cfg.Telegram.Proxy.Type)
+		}
+	}
+
 	var api *tgbotapi.BotAPI
 	var err error
 
-	// Проверяем нужен ли прокси
-	if cfg.Proxy.Enabled && cfg.Proxy.URL != "" {
-		log.Printf("🌐 Используем прокси для Telegram: %s", cfg.Proxy.URL)
-		
-		// Создаём HTTP клиент с прокси
-		proxyURL, parseErr := url.Parse(cfg.Proxy.URL)
-		if parseErr != nil {
-			log.Fatalf("Ошибка парсинга прокси URL: %v", parseErr)
-		}
-
-		httpClient := &http.Client{
-			Transport: &http.Transport{
-				Proxy: http.ProxyURL(proxyURL),
-			},
-			Timeout: 60 * time.Second,
-		}
-
-		// Создаём бота с кастомным HTTP клиентом
+	if httpClient != nil {
+		// Используем кастомный HTTP клиент с прокси
 		api, err = tgbotapi.NewBotAPIWithClient(
 			cfg.Telegram.BotToken,
 			tgbotapi.APIEndpoint,
@@ -63,6 +66,41 @@ func New(cfg *config.Config, db *storage.Storage) *Bot {
 		api: api,
 		cfg: cfg,
 		db:  db,
+	}
+}
+
+// getProxyURL создаёт URL прокси из конфигурации
+func getProxyURL(proxy config.ProxyConfig) (*url.URL, error) {
+	switch proxy.Type {
+	case "socks5":
+		// SOCKS5 прокси
+		// Формат: socks5://user:pass@host:port
+		auth := ""
+		if proxy.SOCKS5.Username != "" {
+			auth = url.UserPassword(proxy.SOCKS5.Username, proxy.SOCKS5.Password).String() + "@"
+		}
+		proxyStr := fmt.Sprintf("socks5://%s%s:%d", auth, proxy.SOCKS5.Host, proxy.SOCKS5.Port)
+		return url.Parse(proxyStr)
+
+	case "http":
+		// HTTP прокси
+		// Формат: http://user:pass@host:port
+		if proxy.HTTP.Username != "" {
+			u, _ := url.Parse(proxy.HTTP.URL)
+			u.User = url.UserPassword(proxy.HTTP.Username, proxy.HTTP.Password)
+			return u, nil
+		}
+		return url.Parse(proxy.HTTP.URL)
+
+	case "mtproto":
+		// MTProto прокси - используется через специальный клиент
+		// Для go-telegram-bot-api нужно использовать HTTP/SOCKS прокси
+		// MTProto можно конвертировать в SOCKS5 через mtg или 3proxy
+		log.Printf("ℹ️ MTProto прокси: используйте mtg или 3proxy для конвертации в SOCKS5")
+		return nil, fmt.Errorf("MTProto требует дополнительный сервер (mtg/3proxy)")
+
+	default:
+		return nil, fmt.Errorf("неизвестный тип прокси: %s", proxy.Type)
 	}
 }
 
@@ -188,8 +226,8 @@ func (b *Bot) handlePlan(args string) string {
 
 func (b *Bot) handleStatus() string {
 	proxyStatus := "❌ не используется"
-	if b.cfg.Proxy.Enabled {
-		proxyStatus = "✅ " + b.cfg.Proxy.URL
+	if b.cfg.Telegram.Proxy.Enabled {
+		proxyStatus = fmt.Sprintf("✅ %s", b.cfg.Telegram.Proxy.Type)
 	}
 
 	return fmt.Sprintf(`📊 <b>Статус системы:</b>
@@ -197,7 +235,7 @@ func (b *Bot) handleStatus() string {
 ✅ Планировщик: активен
 ✅ AI генератор: готов (бесплатные модели)
 ✅ Telegram: подключен
-🌐 Прокси: %s
+🔒 Прокси: %s
 ⏳ Следующая публикация: по расписанию
 
 💰 Стоимость: $0.00/мес`, proxyStatus)
