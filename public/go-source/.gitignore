@@ -1,0 +1,32 @@
+# Бинарники
+content-factory
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Данные
+data/
+*.db
+
+# Картинки
+data/images/
+*.jpg
+*.png
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+
+# Logs
+*.log

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bot, Calendar, Settings, Code2, LayoutDashboard, Key } from 'lucide-react';
+import { Bot, Calendar, Settings, Code2, LayoutDashboard, Key, Download } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import ContentPlan from './components/ContentPlan';
 import Architecture from './components/Architecture';
@@ -7,25 +7,28 @@ import GoCode from './components/GoCode';
 import SetupGuide from './components/SetupGuide';
 import TelegramBot from './components/TelegramBot';
 import ApiSettings from './components/ApiSettings';
+import DownloadProject from './components/DownloadProject';
 
-type Tab = 'dashboard' | 'api' | 'content-plan' | 'architecture' | 'code' | 'setup' | 'telegram';
+type Tab = 'dashboard' | 'download' | 'api' | 'content-plan' | 'architecture' | 'code' | 'setup' | 'telegram';
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
 
   const tabs = [
     { id: 'dashboard' as Tab, label: 'Дашборд', icon: LayoutDashboard },
+    { id: 'download' as Tab, label: 'Скачать', icon: Download },
     { id: 'api' as Tab, label: 'API Ключи', icon: Key },
     { id: 'content-plan' as Tab, label: 'Контент-план', icon: Calendar },
     { id: 'architecture' as Tab, label: 'Архитектура', icon: Settings },
     { id: 'code' as Tab, label: 'Go Код', icon: Code2 },
     { id: 'setup' as Tab, label: 'Настройка', icon: Settings },
-    { id: 'telegram' as Tab, label: 'Telegram Бот', icon: Bot },
+    { id: 'telegram' as Tab, label: 'Telegram', icon: Bot },
   ];
 
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard />;
+      case 'download': return <DownloadProject />;
       case 'api': return <ApiSettings />;
       case 'content-plan': return <ContentPlan />;
       case 'architecture': return <Architecture />;
@@ -39,7 +42,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-900 text-white flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
+      <aside className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col flex-shrink-0">
         <div className="p-6 border-b border-gray-700">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
@@ -47,7 +50,7 @@ function App() {
             </div>
             <div>
               <h1 className="font-bold text-lg">Контент Фабрика</h1>
-              <p className="text-xs text-green-400">100% Бесплатно • Go + AI</p>
+              <p className="text-xs text-green-400">100% Бесплатно • Go</p>
             </div>
           </div>
         </div>
