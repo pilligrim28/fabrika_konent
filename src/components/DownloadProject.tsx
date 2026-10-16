@@ -1,11 +1,11 @@
-import { Download, FileCode, FolderOpen, Copy, Check, Terminal, ExternalLink, Archive, Loader } from 'lucide-react';
+import { Download, FileCode, FolderOpen, Copy, Check, Terminal, ExternalLink, Package } from 'lucide-react';
 import { useState } from 'react';
-import JSZip from 'jszip';
-import { saveAs } from 'file-saver';
+import { downloadProject, downloadFile, PROJECT_FILES, DownloadProgress } from '../utils/downloadProject';
 
 export default function DownloadProject() {
   const [copied, setCopied] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [progress, setProgress] = useState<DownloadProgress | null>(null);
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -13,63 +13,34 @@ export default function DownloadProject() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const handleDownloadZip = async () => {
+  const handleDownloadAll = async () => {
     setDownloading(true);
+    setProgress({
+      current: 0,
+      total: PROJECT_FILES.length,
+      currentFile: 'Начало...',
+      status: 'downloading'
+    });
+
     try {
-      const zip = new JSZip();
-      const folder = zip.folder('content-factory');
-      
-      if (!folder) throw new Error('Failed to create folder');
-
-      // Список всех файлов проекта
-      const files = [
-        'README.md',
-        'go.mod',
-        'go.sum',
-        'Dockerfile',
-        'docker-compose.yml',
-        '.gitignore',
-        'configs/config.yaml',
-        'cmd/main.go',
-        'internal/config/config.go',
-        'internal/models/models.go',
-        'internal/storage/storage.go',
-        'internal/ai/provider.go',
-        'internal/ai/ollama.go',
-        'internal/ai/groq.go',
-        'internal/ai/gemini.go',
-        'internal/ai/huggingface_text.go',
-        'internal/ai/image_pollinations.go',
-        'internal/ai/image_kandinsky.go',
-        'internal/ai/image_huggingface.go',
-        'internal/scheduler/scheduler.go',
-        'internal/bot/bot.go',
-        'internal/dzen/dzen.go',
-      ];
-
-      // Загружаем каждый файл
-      for (const file of files) {
-        try {
-          const response = await fetch(`/go-source/${file}`);
-          if (response.ok) {
-            const content = await response.text();
-            folder.file(file, content);
-          }
-        } catch (error) {
-          console.error(`Failed to load ${file}:`, error);
-        }
-      }
-
-      // Генерируем ZIP
-      const blob = await zip.generateAsync({ type: 'blob' });
-      
-      // Скачиваем
-      saveAs(blob, 'content-factory.zip');
+      await downloadProject((p) => {
+        setProgress(p);
+      });
     } catch (error) {
-      console.error('Error creating ZIP:', error);
-      alert('Ошибка при создании архива');
+      console.error('Ошибка скачивания:', error);
     } finally {
-      setDownloading(false);
+      setTimeout(() => {
+        setDownloading(false);
+        setProgress(null);
+      }, 2000);
+    }
+  };
+
+  const handleDownloadFile = async (path: string, url: string) => {
+    try {
+      await downloadFile(path, url);
+    } catch (error) {
+      console.error('Ошибка скачивания файла:', error);
     }
   };
 
@@ -77,17 +48,21 @@ export default function DownloadProject() {
 curl -fsSL https://ollama.com/install.sh | sh
 ollama pull llama3.1
 
-# 2. Скачайте и распакуйте проект
+# 2. Скачайте проект
+# (используйте кнопку "Скачать весь проект" выше)
+
+# 3. Распакуйте архив
 unzip content-factory.zip
 cd content-factory
 
-# 3. Установите зависимости
+# 4. Установите зависимости
 go mod download
 
-# 4. Настройте конфиг
+# 5. Настройте конфиг
+cp configs/config.yaml.example configs/config.yaml
 nano configs/config.yaml
 
-# 5. Запустите
+# 6. Запустите
 go run cmd/main.go`;
 
   const dockerCommands = `# Сборка образа
@@ -103,31 +78,6 @@ docker run -d --name content-factory \\
 # Или через docker-compose
 docker-compose up -d`;
 
-  const fileList = [
-    { path: 'cmd/main.go', desc: 'Точка входа' },
-    { path: 'configs/config.yaml', desc: 'Конфигурация' },
-    { path: 'internal/config/config.go', desc: 'Загрузка конфига' },
-    { path: 'internal/models/models.go', desc: 'Модели данных' },
-    { path: 'internal/storage/storage.go', desc: 'SQLite база' },
-    { path: 'internal/ai/provider.go', desc: 'Интерфейсы AI' },
-    { path: 'internal/ai/ollama.go', desc: 'Ollama (бесплатно)' },
-    { path: 'internal/ai/groq.go', desc: 'Groq (бесплатно)' },
-    { path: 'internal/ai/gemini.go', desc: 'Gemini (бесплатно)' },
-    { path: 'internal/ai/huggingface_text.go', desc: 'HuggingFace текст' },
-    { path: 'internal/ai/image_pollinations.go', desc: 'Pollinations (без ключа!)' },
-    { path: 'internal/ai/image_kandinsky.go', desc: 'Kandinsky (Сбер)' },
-    { path: 'internal/ai/image_huggingface.go', desc: 'HF Stable Diffusion' },
-    { path: 'internal/scheduler/scheduler.go', desc: 'Cron планировщик' },
-    { path: 'internal/bot/bot.go', desc: 'Telegram бот + прокси' },
-    { path: 'internal/dzen/dzen.go', desc: 'Яндекс Дзен API' },
-    { path: 'Dockerfile', desc: 'Docker образ' },
-    { path: 'docker-compose.yml', desc: 'Docker Compose' },
-    { path: 'README.md', desc: 'Документация' },
-    { path: 'go.mod', desc: 'Go модули' },
-    { path: 'go.sum', desc: 'Go зависимости' },
-    { path: '.gitignore', desc: 'Игнорируемые файлы' },
-  ];
-
   return (
     <div className="p-8">
       <div className="mb-8">
@@ -135,38 +85,68 @@ docker-compose up -d`;
         <p className="text-gray-400 mt-1">Полный исходный код Go проекта — готов к запуску</p>
       </div>
 
-      {/* Download ZIP Button */}
+      {/* Download Button */}
       <div className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 rounded-xl p-6 border border-green-500/30 mb-8">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-xl font-bold flex items-center gap-2">
-              <Archive size={24} className="text-green-400" />
-              Скачать весь проект (ZIP)
+              <Package size={24} className="text-green-400" />
+              Скачать весь проект
             </h2>
-            <p className="text-sm text-gray-400 mt-1">22 файла • Полный Go проект • Готов к запуску</p>
+            <p className="text-sm text-gray-400 mt-1">
+              {PROJECT_FILES.length} файлов • Go проект полностью готов к запуску
+            </p>
           </div>
           <button
-            onClick={handleDownloadZip}
+            onClick={handleDownloadAll}
             disabled={downloading}
-            className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed rounded-lg font-medium transition-all"
+            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
+              downloading
+                ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                : 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/20'
+            }`}
           >
             {downloading ? (
               <>
-                <Loader size={20} className="animate-spin" />
-                Создаём архив...
+                <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                Скачивание...
               </>
             ) : (
               <>
                 <Download size={20} />
-                Скачать ZIP
+                Скачать ZIP архив
               </>
             )}
           </button>
         </div>
+
+        {/* Progress Bar */}
+        {progress && (
+          <div className="bg-gray-900 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-300">{progress.currentFile}</span>
+              <span className="text-sm text-gray-400">
+                {progress.current} / {progress.total}
+              </span>
+            </div>
+            <div className="w-full bg-gray-700 rounded-full h-2">
+              <div
+                className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${(progress.current / progress.total) * 100}%` }}
+              ></div>
+            </div>
+            {progress.status === 'complete' && (
+              <p className="text-sm text-green-400 mt-2 flex items-center gap-1">
+                <Check size={14} />
+                Архив создан и скачан!
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Quick Start */}
-      <div className="bg-gradient-to-r from-blue-600/20 to-cyan-600/20 rounded-xl p-6 border border-blue-500/30 mb-8">
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 mb-8">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
           <Terminal size={20} className="text-blue-400" />
           Быстрый старт
@@ -190,25 +170,26 @@ docker-compose up -d`;
         <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
           <div className="p-4 border-b border-gray-700 flex items-center gap-2">
             <FolderOpen size={18} className="text-yellow-400" />
-            <h2 className="font-bold">Файлы проекта ({fileList.length})</h2>
+            <h2 className="font-bold">Файлы проекта ({PROJECT_FILES.length})</h2>
           </div>
           <div className="p-3 max-h-[500px] overflow-y-auto">
             <div className="space-y-1">
-              {fileList.map((file, i) => (
-                <a
+              {PROJECT_FILES.map((file, i) => (
+                <div
                   key={i}
-                  href={`/go-source/${file.path}`}
-                  target="_blank"
-                  rel="noopener"
                   className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-700/50 transition-all group"
                 >
                   <FileCode size={14} className="text-blue-400 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-mono text-gray-300 group-hover:text-white truncate">{file.path}</p>
-                    <p className="text-xs text-gray-500">{file.desc}</p>
+                    <p className="text-sm font-mono text-gray-300 truncate">{file.path}</p>
                   </div>
-                  <Download size={14} className="text-gray-600 group-hover:text-gray-400 flex-shrink-0" />
-                </a>
+                  <button
+                    onClick={() => handleDownloadFile(file.path, file.url)}
+                    className="flex items-center gap-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs transition-all opacity-0 group-hover:opacity-100"
+                  >
+                    <Download size={12} />
+                  </button>
+                </div>
               ))}
             </div>
           </div>
