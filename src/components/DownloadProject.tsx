@@ -1,8 +1,11 @@
-import { Download, FileCode, FolderOpen, Copy, Check, Terminal, ExternalLink } from 'lucide-react';
+import { Download, FileCode, FolderOpen, Copy, Check, Terminal, ExternalLink, Archive, Loader } from 'lucide-react';
 import { useState } from 'react';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 export default function DownloadProject() {
   const [copied, setCopied] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -10,19 +13,78 @@ export default function DownloadProject() {
     setTimeout(() => setCopied(null), 2000);
   };
 
+  const handleDownloadZip = async () => {
+    setDownloading(true);
+    try {
+      const zip = new JSZip();
+      const folder = zip.folder('content-factory');
+      
+      if (!folder) throw new Error('Failed to create folder');
+
+      // Список всех файлов проекта
+      const files = [
+        'README.md',
+        'go.mod',
+        'go.sum',
+        'Dockerfile',
+        'docker-compose.yml',
+        '.gitignore',
+        'configs/config.yaml',
+        'cmd/main.go',
+        'internal/config/config.go',
+        'internal/models/models.go',
+        'internal/storage/storage.go',
+        'internal/ai/provider.go',
+        'internal/ai/ollama.go',
+        'internal/ai/groq.go',
+        'internal/ai/gemini.go',
+        'internal/ai/huggingface_text.go',
+        'internal/ai/image_pollinations.go',
+        'internal/ai/image_kandinsky.go',
+        'internal/ai/image_huggingface.go',
+        'internal/scheduler/scheduler.go',
+        'internal/bot/bot.go',
+        'internal/dzen/dzen.go',
+      ];
+
+      // Загружаем каждый файл
+      for (const file of files) {
+        try {
+          const response = await fetch(`/go-source/${file}`);
+          if (response.ok) {
+            const content = await response.text();
+            folder.file(file, content);
+          }
+        } catch (error) {
+          console.error(`Failed to load ${file}:`, error);
+        }
+      }
+
+      // Генерируем ZIP
+      const blob = await zip.generateAsync({ type: 'blob' });
+      
+      // Скачиваем
+      saveAs(blob, 'content-factory.zip');
+    } catch (error) {
+      console.error('Error creating ZIP:', error);
+      alert('Ошибка при создании архива');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const installCommands = `# 1. Установите Ollama (бесплатный AI для текста)
 curl -fsSL https://ollama.com/install.sh | sh
 ollama pull llama3.1
 
-# 2. Клонируйте или скачайте проект
-git clone https://github.com/yourname/content-factory
+# 2. Скачайте и распакуйте проект
+unzip content-factory.zip
 cd content-factory
 
 # 3. Установите зависимости
 go mod download
 
 # 4. Настройте конфиг
-cp configs/config.yaml.example configs/config.yaml
 nano configs/config.yaml
 
 # 5. Запустите
@@ -34,7 +96,7 @@ docker build -t content-factory .
 # Запуск
 docker run -d --name content-factory \\
   -v ./configs:/app/configs \\
-  -v ./data:/app/data \\
+  -v .//app/data \\
   --network host \\
   content-factory
 
@@ -56,12 +118,14 @@ docker-compose up -d`;
     { path: 'internal/ai/image_kandinsky.go', desc: 'Kandinsky (Сбер)' },
     { path: 'internal/ai/image_huggingface.go', desc: 'HF Stable Diffusion' },
     { path: 'internal/scheduler/scheduler.go', desc: 'Cron планировщик' },
-    { path: 'internal/bot/bot.go', desc: 'Telegram бот' },
+    { path: 'internal/bot/bot.go', desc: 'Telegram бот + прокси' },
     { path: 'internal/dzen/dzen.go', desc: 'Яндекс Дзен API' },
     { path: 'Dockerfile', desc: 'Docker образ' },
     { path: 'docker-compose.yml', desc: 'Docker Compose' },
     { path: 'README.md', desc: 'Документация' },
     { path: 'go.mod', desc: 'Go модули' },
+    { path: 'go.sum', desc: 'Go зависимости' },
+    { path: '.gitignore', desc: 'Игнорируемые файлы' },
   ];
 
   return (
@@ -71,10 +135,40 @@ docker-compose up -d`;
         <p className="text-gray-400 mt-1">Полный исходный код Go проекта — готов к запуску</p>
       </div>
 
-      {/* Quick Start */}
+      {/* Download ZIP Button */}
       <div className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 rounded-xl p-6 border border-green-500/30 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <Archive size={24} className="text-green-400" />
+              Скачать весь проект (ZIP)
+            </h2>
+            <p className="text-sm text-gray-400 mt-1">22 файла • Полный Go проект • Готов к запуску</p>
+          </div>
+          <button
+            onClick={handleDownloadZip}
+            disabled={downloading}
+            className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed rounded-lg font-medium transition-all"
+          >
+            {downloading ? (
+              <>
+                <Loader size={20} className="animate-spin" />
+                Создаём архив...
+              </>
+            ) : (
+              <>
+                <Download size={20} />
+                Скачать ZIP
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Quick Start */}
+      <div className="bg-gradient-to-r from-blue-600/20 to-cyan-600/20 rounded-xl p-6 border border-blue-500/30 mb-8">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <Terminal size={20} className="text-green-400" />
+          <Terminal size={20} className="text-blue-400" />
           Быстрый старт
         </h2>
         <div className="relative">

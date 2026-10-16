@@ -12,6 +12,7 @@
 - 📱 Управление через Telegram бота
 - 📅 Контент-план с расписанием
 - 📊 Статистика и логи
+- 🔒 Поддержка прокси (MTProto / SOCKS5 / HTTP)
 
 ## 🆓 Бесплатные AI модели
 
@@ -32,7 +33,12 @@
 
 ## 🚀 Быстрый старт
 
-### 1. Установите Ollama (рекомендуется)
+### 1. Скачайте проект
+
+Нажмите кнопку **"Скачать ZIP"** в веб-интерфейсе или скачайте файлы вручную.
+
+### 2. Установите Ollama (рекомендуется)
+
 ```bash
 # Linux/Mac
 curl -fsSL https://ollama.com/install.sh | sh
@@ -44,43 +50,62 @@ ollama pull llama3.1
 ollama serve
 ```
 
-### 2. Клонируйте проект
+### 3. Распакуйте и перейдите в папку
+
 ```bash
-git clone https://github.com/yourname/content-factory
+unzip content-factory.zip
 cd content-factory
 ```
 
-### 3. Настройте конфигурацию
-```bash
-cp configs/config.yaml.example configs/config.yaml
-nano configs/config.yaml
-```
+### 4. Установите зависимости
 
-Заполните:
-- `telegram.bot_token` — токен бота от [@BotFather](https://t.me/BotFather)
-- `telegram.admin_chat_id` — ваш chat_id (узнать: [@userinfobot](https://t.me/userinfobot))
-- `dzen.oauth_token` — OAuth токен Яндекс Дзен
-- `dzen.channel_id` — ID вашего канала
-
-### 4. Установите зависимости и запустите
 ```bash
 go mod download
+```
+
+### 5. Настройте конфигурацию
+
+Откройте `configs/config.yaml` и заполните:
+
+```yaml
+telegram:
+  bot_token: "YOUR_BOT_TOKEN"  # от @BotFather
+  admin_chat_id: 123456789      # от @userinfobot
+
+text:
+  provider: "ollama"
+  ollama:
+    url: "http://localhost:11434"
+    model: "llama3.1"
+
+image:
+  provider: "pollinations"  # Без ключа!
+
+dzen:
+  oauth_token: "YOUR_YANDEX_TOKEN"
+  channel_id: "YOUR_CHANNEL_ID"
+```
+
+### 6. Запустите
+
+```bash
 go run cmd/main.go
 ```
 
 ## 🐳 Docker запуск
 
 ```bash
+# Сборка образа
 docker build -t content-factory .
-docker run -d --name cf \
+
+# Запуск
+docker run -d --name content-factory \
   -v ./configs:/app/configs \
-  -v ./data:/app/data \
+  -v .//app/data \
   --network host \
   content-factory
-```
 
-Или через docker-compose:
-```bash
+# Или через docker-compose
 docker-compose up -d
 ```
 
@@ -96,6 +121,26 @@ docker-compose up -d
 | `/generate [тема]` | Сгенерировать статью |
 | `/stats` | Статистика |
 | `/help` | Помощь |
+
+## 🔒 Настройка прокси
+
+Если Telegram API заблокирован, настройте прокси в `configs/config.yaml`:
+
+```yaml
+telegram:
+  proxy:
+    enabled: true
+    type: "socks5"
+    socks5:
+      host: "your-proxy.com"
+      port: 1080
+```
+
+**Бесплатные прокси:**
+- Публичные MTProto: @MTProxybot, @proxy_list
+- SOCKS5: sslproxies.org, free-proxy-list.net
+- Свой на Oracle Cloud Free Tier (навсегда бесплатно)
+- Tor (порт 9050)
 
 ## 📁 Структура проекта
 
@@ -114,7 +159,7 @@ content-factory/
 │   │   ├── image_kandinsky.go    # Kandinsky (Сбер)
 │   │   └── image_huggingface.go  # HF Stable Diffusion
 │   ├── bot/
-│   │   └── bot.go           # Telegram бот
+│   │   └── bot.go           # Telegram бот + прокси
 │   ├── config/
 │   │   └── config.go        # Конфигурация
 │   ├── dzen/
@@ -147,11 +192,10 @@ content-factory/
 - 🖼️ Kandinsky: [developers.sber.ru](https://developers.sber.ru/studio/workspaces)
 - 📰 Яндекс Дзен: [dzen.ru](https://dzen.ru) → настройки → API
 
-### Документация:
-- Ollama: https://ollama.com
-- Groq API: https://console.groq.com/docs
-- Gemini API: https://ai.google.dev/docs
-- Яндекс Дзен API: https://yandex.ru/dev/dzen/api/
+### Прокси:
+- MTProto: [@MTProxybot](https://t.me/MTProxybot), [@proxy_list](https://t.me/proxy_list)
+- SOCKS5: [sslproxies.org](https://www.sslproxies.org/), [free-proxy-list.net](https://free-proxy-list.net/)
+- VPS: [Oracle Cloud Free](https://www.oracle.com/cloud/free/), [AWS Free Tier](https://aws.amazon.com/free/)
 
 ## 💡 Рекомендации
 
@@ -188,38 +232,13 @@ image:
 | Gemini + Kandinsky | $0.00/мес |
 | **Любая комбинация** | **$0.00/мес** |
 
-## 🌐 Прокси для Telegram
-
-Если Telegram заблокирован в вашем регионе, настройте прокси:
-
-### Вариант 1: В конфиге
-```yaml
-# configs/config.yaml
-proxy:
-  enabled: true
-  url: "http://proxy.example.com:8080"
-```
-
-### Вариант 2: Переменная окружения
-```bash
-export HTTP_PROXY=http://proxy.example.com:8080
-export HTTPS_PROXY=http://proxy.example.com:8080
-```
-
-### Бесплатные прокси (нестабильные):
-- [Free Proxy List](https://free-proxy-list.net)
-- [ProxyScrape](https://proxyscrape.com/free-proxy-list)
-- [GeoNode](https://geonode.com/free-proxy-list)
-
-### Рекомендуемый вариант: Свой VPS (~$2/мес)
-Арендуйте VPS и настройте Squid прокси — самый надёжный способ.
-
 ## 🛠 Технологии
 
 - **Go 1.21+** — основной язык
 - **SQLite** — база данных
 - **robfig/cron** — планировщик
 - **go-telegram-bot-api** — Telegram бот
+- **JSZip** — создание ZIP архивов
 - **Бесплатные AI** — Ollama, Groq, Gemini, Pollinations, Kandinsky
 
 ## 📝 Лицензия
@@ -229,3 +248,12 @@ MIT
 ---
 
 💰 **Итого: полностью бесплатная контент-фабрика с AI!**
+
+## 🎯 Что включено в ZIP
+
+- ✅ 22 Go файла с полным кодом
+- ✅ Конфигурация с примерами
+- ✅ Docker файлы
+- ✅ Документация
+- ✅ Поддержка прокси
+- ✅ Готово к запуску
