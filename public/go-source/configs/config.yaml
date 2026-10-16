@@ -119,3 +119,12 @@ content:
     - "Бизнес"
   articles_per_day: 3
   words_per_article: 1500
+
+# === Прокси для Telegram (если заблокирован) ===
+# Бесплатные варианты:
+# - Cloudflare Workers: https://workers.cloudflare.com (100k запросов/день)
+# - Ceckin.ru: https://proxy.ceckin.ru/telegram
+# - Свой Nginx прокси на VPS
+proxy:
+  enabled: false
+  url: "https://your-proxy.workers.dev"  # URL вашего прокси
